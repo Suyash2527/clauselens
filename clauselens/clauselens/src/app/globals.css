@@ -1,0 +1,216 @@
+/*
+ * Design language: a legal ledger. Warm paper, dark ink, hairline rules, and a
+ * single oxblood accent reserved for risk. Contrast ratios for every text/
+ * background pairing below are >= 4.5:1 (WCAG AA).
+ */
+:root {
+  --paper: #f4efe6;
+  --paper-raised: #fbf8f2;
+  --rule: #ddd3c2;
+  --ink: #1b1815;
+  --ink-soft: #554c42;
+  --oxblood: #8c2f23;
+  --amber: #8a5a12;
+  --sage: #3d5c45;
+  --focus: #1f4e79;
+
+  --font-display: "Fraunces", "Iowan Old Style", Georgia, serif;
+  --font-body: "Newsreader", Georgia, serif;
+  --font-mono: "JetBrains Mono", "SFMono-Regular", monospace;
+
+  --space: 1rem;
+  --radius: 2px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #16140f;
+    --paper-raised: #211d16;
+    --rule: #3a342a;
+    --ink: #f0e9dc;
+    --ink-soft: #bdb2a1;
+    --oxblood: #e08074;
+    --amber: #e0b061;
+    --sage: #8fc39c;
+    --focus: #8ec5ff;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: light dark;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  background-image: radial-gradient(circle at 15% 0%, rgba(140, 47, 35, 0.05), transparent 45%);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.15;
+  margin: 0 0 0.5em;
+}
+
+h1 {
+  font-size: clamp(2rem, 5vw, 3.25rem);
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* Keyboard users get a way past the header without tabbing through it. */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 0.75rem 1rem;
+  z-index: 10;
+}
+.skip-link:focus {
+  left: 0;
+}
+
+.shell {
+  max-width: 68rem;
+  margin: 0 auto;
+  padding: clamp(1.5rem, 4vw, 3rem);
+}
+
+.rule {
+  border: 0;
+  border-top: 1px solid var(--rule);
+  margin: 2rem 0;
+}
+
+.panel {
+  background: var(--paper-raised);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+}
+
+.label {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+textarea,
+select,
+input,
+button {
+  font: inherit;
+  color: inherit;
+}
+
+textarea {
+  width: 100%;
+  min-height: 14rem;
+  padding: 1rem;
+  background: var(--paper-raised);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  resize: vertical;
+}
+
+select {
+  padding: 0.6rem 0.75rem;
+  background: var(--paper-raised);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+}
+
+.button {
+  padding: 0.7rem 1.4rem;
+  background: var(--ink);
+  color: var(--paper);
+  border: 1px solid var(--ink);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: transform 120ms ease, opacity 120ms ease;
+}
+.button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+.button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border: 1px solid currentColor;
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.badge--high {
+  color: var(--oxblood);
+}
+.badge--medium {
+  color: var(--amber);
+}
+.badge--low {
+  color: var(--sage);
+}
+
+.clause {
+  border-left: 3px solid var(--rule);
+  padding: 0 0 0 1rem;
+  margin-bottom: 1.75rem;
+}
+.clause--high {
+  border-left-color: var(--oxblood);
+}
+.clause--medium {
+  border-left-color: var(--amber);
+}
+
+.clause__source {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  white-space: pre-wrap;
+  margin-top: 0.75rem;
+}
+
+.notice {
+  border: 1px solid var(--oxblood);
+  border-left-width: 4px;
+  padding: 0.9rem 1rem;
+  font-size: 0.95rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
