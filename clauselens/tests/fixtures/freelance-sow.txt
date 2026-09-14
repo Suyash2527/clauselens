@@ -1,0 +1,19 @@
+STATEMENT OF WORK (SOW)
+
+This SOW is effective January 1, 2026, between MegaCorp ("Client") and John Smith ("Freelancer").
+
+Section 1. SCOPE OF SERVICES: The Freelancer agrees to design and develop a mobile application as per the specifications provided by the Client. The Client reserves the right to request unlimited revisions until final approval is granted.
+
+Section 2. PAYMENT TERMS: The Client agrees to pay a fixed fee of Rs. 500,000 for the project. Payment will be made net-90 days after the final deliverable is accepted by the Client in writing.
+
+Section 3. EXPENSES: The Freelancer is responsible for all costs, tools, and software licenses required to perform the services. The Client will not reimburse any expenses.
+
+Section 4. TERMINATION: The Client may terminate this SOW at any time for convenience with 7 days' written notice. In such an event, the Client will only pay for work accepted up to the termination date.
+
+Section 5. INDEMNITY: The Freelancer shall indemnify, defend, and hold the Client harmless from any and all claims, losses, or damages arising out of the Freelancer's performance of the services or any breach of this agreement.
+
+Section 6. LIABILITY: Under no circumstances shall the Client be liable to the Freelancer for any indirect, special, or consequential damages. The Client's total liability shall not exceed the amount paid under this SOW.
+
+Section 7. INTELLECTUAL PROPERTY: Upon full payment, the Freelancer assigns all rights, title, and interest in the deliverables to the Client. The Freelancer waives all moral rights.
+
+Section 8. NON-SOLICITATION: The Freelancer shall not solicit or hire any employees or contractors of the Client for a period of 12 months following the completion of this SOW.
