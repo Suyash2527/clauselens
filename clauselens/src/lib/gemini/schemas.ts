@@ -67,3 +67,11 @@ export const checklistResponseSchema = {
   },
   required: ["questions"],
 } as const;
+
+export const extractTextResponseSchema = {
+  type: Type.OBJECT,
+  properties: {
+    text: { type: Type.STRING },
+  },
+  required: ["text"],
+} as const;

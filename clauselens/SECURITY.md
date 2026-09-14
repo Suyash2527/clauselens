@@ -69,3 +69,11 @@ microphone, and geolocation. `poweredByHeader` is disabled.
   store behind the same interfaces.
 - Injection defence is pattern-based and cannot be complete. It reduces a known attack class; the
   fencing and system-instruction layers exist because no single layer is sufficient.
+
+## File uploads
+
+File uploads (PDF and DOCX) are treated as untrusted input exactly like pasted text.
+- **Size limit**: Enforced via a dual-check on `content-length` stream headers (before reading) and raw buffer size (after reading), strictly capped at 5 MB.
+- **MIME Validation**: Validated by inspecting the actual magic bytes of the file buffer (e.g. `%PDF`), not relying on user-provided filename extensions or `content-type` headers.
+- **Text Extraction**: The extracted text is passed through the same `sanitiseDocumentText` routine as pasted text to neutralise injection attempts hidden inside the file payload.
+- **Rate limiting**: The `/api/extract` route enforces the same IP-based rate limiting as the main analysis path, as PDF extraction invokes the model.

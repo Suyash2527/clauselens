@@ -1,0 +1,9 @@
+INDEPENDENT CONTRACTOR AGREEMENT
+
+1. SERVICES PROVIDED: The Contractor agrees to provide software development services to the Client as specified in the attached Statement of Work.
+2. PAYMENT: The Client shall pay the Contractor at a rate of $100 per hour. Invoices shall be submitted monthly and are payable within 30 days of receipt (Net 30).
+3. INTELLECTUAL PROPERTY: All work product created by the Contractor under this agreement is considered "work made for hire." The Client shall own all rights, title, and interest in and to the work product.
+4. CONFIDENTIALITY: The Contractor agrees not to disclose any confidential information obtained during the course of the engagement. This obligation shall survive the termination of this agreement for a period of three (3) years.
+5. INDEPENDENT CONTRACTOR STATUS: The Contractor is an independent contractor, not an employee. The Contractor is responsible for all taxes and shall not be entitled to any employee benefits.
+6. TERMINATION: Either party may terminate this agreement at any time with or without cause by providing fourteen (14) days written notice.
+7. LIABILITY: In no event shall the Contractor be liable for any indirect, special, or consequential damages arising out of the performance of these services.
