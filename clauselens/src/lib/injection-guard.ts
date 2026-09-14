@@ -34,7 +34,7 @@ export function sanitiseDocumentText(input: string): SanitisedText {
   for (const pattern of INJECTION_PATTERNS) {
     text = text.replace(pattern, (match) => {
       flagged += 1;
-      return `[quoted text: ${match}]`;
+      return `[quoted text: ${match.replace(/[<>]/g, "")}]`;
     });
   }
   // Collapse delimiter sequences that could be used to escape our own fencing.

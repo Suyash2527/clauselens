@@ -8,6 +8,6 @@ export default defineConfig({
     coverage: { reporter: ["text", "lcov"], include: ["src/lib/**"] },
   },
   resolve: {
-    alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
+    alias: { rollup: "@rollup/wasm-node", "@": fileURLToPath(new URL("./src", import.meta.url)) },
   },
 });

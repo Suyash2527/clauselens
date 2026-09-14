@@ -65,7 +65,7 @@ describe("analyzeDocument", () => {
 
   it("survives a checklist failure without failing the analysis", async () => {
     const deps = stubDeps({ checklist: vi.fn(async () => []) });
-    const result = await analyzeDocument(CONTRACT, "freelancer", deps);
+    const result = await analyzeDocument(CONTRACT + " unique failure test", "freelancer", deps);
     expect(result.lawyerChecklist).toEqual([]);
     expect(result.clauses.length).toBeGreaterThan(0);
   });

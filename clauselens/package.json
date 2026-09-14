@@ -22,6 +22,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",
+    "@rollup/wasm-node": "^4.63.3",
     "@types/node": "^22.10.2",
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
@@ -32,5 +33,10 @@
     "typescript-eslint": "^8.18.1",
     "vitest": "^2.1.8"
   },
-  "engines": { "node": ">=20" }
+  "overrides": {
+    "rollup": "npm:@rollup/wasm-node@latest"
+  },
+  "engines": {
+    "node": ">=20"
+  }
 }

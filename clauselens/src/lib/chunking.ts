@@ -7,7 +7,7 @@ const MAX_CLAUSE_CHARS = 4_000;
  * Matches the numbering styles used by the agreements this tool targets:
  * "1.", "1.2", "(a)", "Section 4", "ARTICLE III", "WHEREAS".
  */
-const CLAUSE_START = /^\s*(?:\(?[a-z0-9]{1,4}[.)]|section\s+\d+|article\s+[ivx\d]+|whereas)\b/i;
+const CLAUSE_START = /^\s*(?:\(?[a-z0-9]{1,4}[.)]|section\s+\d+[.)]?|article\s+[ivx\d]+[.)]?|whereas)(?:\s|$)/i;
 
 function normalise(raw: string): string {
   return raw.replace(/\r\n?/g, "\n").replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n");

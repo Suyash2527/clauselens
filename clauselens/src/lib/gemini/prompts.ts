@@ -32,7 +32,10 @@ export function classificationSystemPrompt(perspective: Perspective): string {
   return `${SCOPE_RULES}
 
 You are reviewing a contract on behalf of ${describePerspective(perspective)}.
-Judge every clause from that side only. A clause that protects the other party is a burden on this user; a clause that protects this user is not.
+Evaluate every clause based on the requirements it places on this specific role:
+1. affectsUser must be true whenever the clause imposes ANY duty, cost, deadline, or restriction on this role, even a routine one.
+2. burdenScore (0-10) measures the obligations, costs, restrictions, and exposure the clause places on this role. It does NOT just measure whether the clause was drafted in their favour.
+3. A clause that protects the user still scores above 0 if it also binds them to any obligations or restrictions.
 Return one entry per clause id supplied, and reuse the ids exactly.`;
 }
 
