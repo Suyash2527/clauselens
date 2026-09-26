@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { badRequest, toSafeError, unsupportedMediaType } from "@/lib/errors";
+import { badRequest, payloadTooLarge, toSafeError, unsupportedMediaType } from "@/lib/errors";
 import { answerQuestion } from "@/lib/gemini/answer-question";
 import { sanitiseDocumentText } from "@/lib/injection-guard";
 import { maskPii } from "@/lib/pii";
@@ -24,6 +24,11 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     enforceRateLimit(clientIpFromHeaders(request.headers));
+
+    const contentLength = Number(request.headers.get("content-length") ?? 0);
+    if (contentLength > 300_000) {
+      throw payloadTooLarge("Request is too large.");
+    }
 
     const parsed = askRequestSchema.safeParse(await request.json());
     if (!parsed.success) {
