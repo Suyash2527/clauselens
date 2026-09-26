@@ -19,9 +19,10 @@ The rule that shapes everything: **`src/lib/` never imports React, and component
 2. **Size check** — `content-length` is rejected above 300 KB before the body is read.
 3. **Validation** (`types.ts`) — Zod parses `{ text, perspective }`; failure returns a 400 with the
    first issue message.
-4. **Cache probe** (`cache.ts`) — `sha256(perspective + text)`. A hit returns immediately with zero
+4. **Extract** (for files) — if `POST /api/extract` is called, PDF/DOCX buffers are parsed locally in-memory into raw text before analysis begins.
+5. **Cache probe** (`cache.ts`) — `sha256(perspective + text)`. A hit returns immediately with zero
    model calls.
-5. **Sanitise** (`injection-guard.ts`) — injection patterns neutralised, fence escapes collapsed.
+6. **Sanitise** (`injection-guard.ts`) — injection patterns neutralised, fence escapes collapsed.
 6. **Chunk** (`chunking.ts`) — split on blank lines, merge unnumbered continuations into the
    preceding clause, split oversized clauses on sentence boundaries. Character offsets into the
    normalised text are preserved so the UI can show exact source.
@@ -60,7 +61,7 @@ wall-clock time roughly flat as documents grow. The batch size is a single const
 
 ## Extension points
 
-- **PDF input** — add a Files API upload step ahead of step 5; nothing downstream changes.
+- **Document OCR** — extend the `extract` pipeline to handle image-based PDFs, either via a local worker or by delegating to the Gemini Files API.
 - **Clause retrieval for long documents** — swap the "send all clauses" approach in `/api/ask` for
   `gemini-embedding-001` top-k retrieval. The route's contract stays identical.
 - **Shared cache / limiter** — `TtlCache` and the limiter are small interfaces; a Redis-backed

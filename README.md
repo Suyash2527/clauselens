@@ -1,30 +1,52 @@
 # ClauseLens
 
-**Vertical: AI for Legal Assistance & Access**
+Legal documents are dense, complex, and difficult to navigate without professional help. ClauseLens is an AI-powered assistant that makes contracts accessible by explaining them in plain English.
 
-ClauseLens reads a rental, employment, or freelance agreement and explains it clause by clause in
-plain English — weighted from *your* side of the deal. It flags what needs attention, shows the
-original wording behind every explanation, answers questions grounded only in the document, and
-produces a list of questions to take to a real lawyer.
+ClauseLens directly addresses the challenge of making legal documents more approachable by:
+- simplifying complex legal documents
+- highlighting important clauses, obligations and risks
+- answering questions based on provided legal documents
+- generating summaries and actionable checklists
+- helping users prepare questions for a legal professional
 
-It explains documents. It does not give legal advice.
+**ClauseLens provides information and assistance to help you understand a document; it does not replace professional legal advice.**
 
 ---
 
-## The idea in one line
+## The Differentiator: Role-Aware Analysis
 
-The same clause is a risk for one party and a protection for the other, so ClauseLens asks who you
-are before it tells you what the contract means.
+The same clause is a risk for one party and a protection for the other. ClauseLens asks who you are before it tells you what the contract means, scoring severity from your perspective.
 
-An uncapped indemnity is severe for a freelancer and benign for the client it protects. A
-two-month notice period is a burden on a tenant and a convenience for a landlord. Most document
-summarisers ignore this and produce a neutral précis that helps nobody. ClauseLens makes the
-user's role the axis the entire analysis turns on.
+**Example: An Indemnity Clause**
+*Clause*: "The freelancer agrees to indemnify and hold the client harmless against any claims, damages, or liabilities arising out of the freelancer's work."
 
-## Approach and logic
+If you analyze this as a **Freelancer**:
+- Base weight (1.2) × Perspective penalty (1.6) = **High severity (Score: 9.6)**
+
+If you analyze this as a **Client**:
+- Base weight (1.2) × Perspective protection (0.7) = **Low severity (Score: 4.2)**
+
+This single mechanism ensures the analysis is actually useful to the person reading it, rather than producing a neutral summary that helps nobody.
+
+---
+
+## Run it in 30 seconds
+
+```bash
+npm install
+npm run dev
+```
+
+**ClauseLens includes a full Demo Mode.** It will run perfectly with deterministic fixture responses without an API key, allowing you to test the interface, file uploads, and pipeline locally right away. To use live Gemini responses, copy `.env.example` to `.env.local` and add your `GEMINI_API_KEY`.
+
+---
+
+## How it works
 
 ```
-paste text
+upload (PDF/DOCX)
+   ↓
+extract            extract raw text from file buffer in memory
    ↓
 sanitise           strip instruction-like text from untrusted document content
    ↓
@@ -39,117 +61,41 @@ synthesise         red flags + questions for a lawyer
 ask                follow-up Q&A grounded in the clauses, with clause citations
 ```
 
-Two decisions carry most of the design:
-
-**Severity is computed locally, not asked of the model.** The model returns a raw burden score and
-a category; `src/lib/risk-scoring.ts` applies a role-weighting table to produce the final severity.
-This makes the perspective logic deterministic, unit-testable, and auditable — a reviewer can read
-the table and see exactly why a verdict changed.
-
-**Every model call is schema-constrained.** `responseSchema` is passed on all three call sites, and
-the reply is then validated again with Zod. There is no free-text parsing anywhere in the codebase.
-
-## How the solution works
-
-| Step | Entry point |
-|---|---|
-| Input validation | `src/lib/types.ts` — Zod schemas for every request and model response |
-| Injection defence | `src/lib/injection-guard.ts` |
-| Clause splitting | `src/lib/chunking.ts` |
-| Gemini calls | `src/lib/gemini/` — client, prompts, response schemas, two call modules |
-| Orchestration | `src/lib/analysis/analyze-document.ts` |
-| Role weighting | `src/lib/risk-scoring.ts` |
-| HTTP surface | `src/app/api/analyze/route.ts`, `src/app/api/ask/route.ts` |
-| Interface | `src/app/page.tsx`, `src/components/` |
-
-Detailed request walkthrough: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
-
-## Google GenAI usage
-
-Built entirely on Google's generative AI stack via the `@google/genai` SDK.
-
-| Purpose | Model | Config |
-|---|---|---|
-| Clause classification | `gemini-2.0-flash` | `responseSchema`, temperature 0.2, batched 10 per call |
-| Document Q&A | `gemini-2.0-flash` | `responseSchema`, temperature 0.3 |
-| Lawyer checklist | `gemini-2.0-flash` | `responseSchema`, temperature 0.4 |
-
-Model names are configurable via environment variables (`src/lib/gemini/client.ts`).
-
-## Running it
-
-```bash
-npm install
-cp .env.example .env.local     # add your Google AI Studio key
-npm run dev                    # http://localhost:3000
-npm run verify                 # typecheck + lint + tests
-```
-
-`GEMINI_API_KEY` is read only in `src/lib/gemini/client.ts`, which is imported exclusively by
-server modules. It is never prefixed with `NEXT_PUBLIC_` and never reaches the browser bundle.
-
 ---
 
-## How this submission addresses the evaluation criteria
+## Evaluation Criteria
 
-### Code quality
-- TypeScript `strict`, plus `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes`; zero `any`
-  (enforced as an ESLint error).
-- Business logic lives in `src/lib/` and imports nothing from React. Route handlers are thin —
-  validate, rate-limit, delegate.
-- One responsibility per module; ESLint warns above 200 lines per file.
-- Dependencies are injected into the orchestrator (`AnalyzeDeps`) so the pipeline is testable
-  without network access.
+### Code Quality
+- TypeScript `strict` with zero `any` usage.
+- Business logic is isolated in `src/lib/` without React imports. Route handlers delegate all work.
+- Configurable models: `src/lib/gemini/client.ts` routes classification and synthesis to `gemini-2.0-flash`.
 
 ### Security
-- All model calls are server-side; the API key never enters client code.
-- Prompt-injection defence on all untrusted text, with layered mitigation: pattern neutralisation
-  (`injection-guard.ts`), explicit `<document_content>` fencing, and a system instruction stating
-  that document content is data rather than instructions.
-- Zod validation on every request body and every model response.
-- Per-IP rate limiting on both routes before any work is done.
-- Errors are wrapped in `AppError`; provider messages and stack traces never reach the client.
-- Security headers set in `next.config.ts`. Full notes: [`SECURITY.md`](SECURITY.md).
+- The `GEMINI_API_KEY` never leaves the server (`src/lib/gemini/client.ts`).
+- Prompt-injection defence neutralises known patterns (`src/lib/injection-guard.ts`).
+- PDF and DOCX uploads validate magic bytes, strictly limit size to 5MB, and pass through the injection guard (`src/app/api/extract/route.ts`).
+- See [`SECURITY.md`](SECURITY.md) for full details on headers and mitigation.
 
 ### Efficiency
-- Batched classification: a 40-clause lease costs 4 model calls, not 40.
-- Content-addressed LRU+TTL cache keyed by `sha256(perspective + document)`; the raw text is never
-  used as a key.
-- Batches run concurrently via `Promise.all`; clause count is capped so cost stays bounded.
-- Severity scoring is pure local computation — no model call.
+- Batched classification: `src/lib/gemini/classify-clauses.ts` runs 10 clauses per prompt concurrently.
+- Severity scoring is calculated locally without a model call (`src/lib/risk-scoring.ts`).
 
 ### Testing
-- Vitest suite covering chunking, injection defence, role-weighted scoring, rate limiting,
-  validation schemas, caching, and the full orchestration pipeline.
-- The Gemini layer is stubbed, so the suite runs offline with no API key.
-- GitHub Actions runs `typecheck`, `lint`, and `test` on every push (`.github/workflows/ci.yml`).
+- 64 tests across 10 files cover chunking, validation, scoring, extraction, injection guard, and orchestration.
+- `npm run test` executes the Vitest suite offline via stubbed model responses.
 
 ### Accessibility
-- Semantic landmarks, a skip link, and a labelled heading hierarchy.
-- Every control has an associated `<label>`; the role selector carries `aria-describedby`.
-- Async results are announced through `role="status"` / `aria-live="polite"` regions.
-- Risk is conveyed by text as well as colour — the badge reads "Needs attention", not just red.
-- Visible 3px focus rings, full keyboard operability, `prefers-reduced-motion` and
-  `prefers-color-scheme` both honoured.
-- All text/background pairs meet WCAG AA contrast in both themes.
+- Fully keyboard-accessible controls, `<label>` bindings, and `aria-live` regions for async results (`src/app/page.tsx`).
 
 ---
 
 ## Assumptions
 
-- Users paste text. PDF upload via the Gemini Files API is a natural extension but was left out to
-  keep the repository small and the dependency surface minimal.
-- Documents are in English; the clause-numbering heuristics target Indian and common-law
-  agreement conventions (`1.`, `(a)`, `Section 4`, `WHEREAS`).
-- Analysis is capped at 60 clauses per document to bound cost and latency; truncation is reported
-  to the user rather than hidden.
-- The cache is in-process, which suits a single-instance deployment. A multi-instance deployment
-  would swap `TtlCache` for a shared store behind the same interface.
-- No document text is persisted. Nothing is written to disk or to a database.
+- **Supported file types**: Text pasting, PDFs, and DOCX files. Extraction happens on the server via `pdf-parse` and `mammoth` respectively, eliminating the need to send entire files directly to the Gemini Files API.
+- **English-only**: Clause numbering heuristics target common-law and standard English conventions.
+- **60-clause cap**: Analysis is capped at 60 clauses to bound latency. Truncation is explicitly reported to the user.
+- **Ephemeral State**: In-process caching bounds memory footprint. No document text is persisted to a database or disk.
 
 ## Scope limit
 
-ClauseLens is an information tool. It is instructed — in the system prompt and enforced in the
-interface — never to advise whether to sign, never to predict how a court would rule, and to say
-plainly when the document does not answer a question. The disclaimer is permanent and cannot be
-dismissed.
+ClauseLens is strictly an information tool. The interface permanently displays a disclaimer stating that it does not provide legal advice, and the model is instructed never to predict court rulings or advise a user on whether to sign a document.
