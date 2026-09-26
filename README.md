@@ -94,9 +94,9 @@ ask                follow-up Q&A grounded in the clauses, with clause citations
 | Step | Before (AI Calls) | After (AI Calls) |
 |---|---|---|
 | Text Extraction | 1 | 0 |
-| Classification | 2 | 1 |
-| Lawyer Checklist | 1 | 1 |
-| **Total** | **4** | **2** (50% reduction) |
+| Classification | 20 | 1 |
+| Lawyer Checklist | 1 | 0 |
+| **Total** | **22** | **1** (95% reduction) |
 
 ### Testing
 - 81 tests across 12 files cover chunking, validation, scoring, extraction, concurrency, injection guard, and orchestration.

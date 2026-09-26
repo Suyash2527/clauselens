@@ -8,11 +8,10 @@ import { enforceSameOrigin } from "@/lib/origin-guard";
 import { askRequestSchema } from "@/lib/types";
 import { TtlCache, cacheKey } from "@/lib/cache";
 import { PROMPT_VERSION } from "@/lib/gemini/prompts";
+import type { AskAnswer } from "@/lib/types";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const answerCache = new TtlCache<any>();
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const inFlightAnswers = new Map<string, Promise<any>>();
+const answerCache = new TtlCache<AskAnswer>();
+const inFlightAnswers = new Map<string, Promise<AskAnswer>>();
 
 /** Node runtime, matching the other routes that share the Gemini client. */
 export const runtime = "nodejs";

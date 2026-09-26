@@ -32,9 +32,7 @@ The rule that shapes everything: **`src/lib/` never imports React, and component
    against the known clause ids.
 9. **Score** (`risk-scoring.ts`) — pure local computation. `burdenScore × roleWeight(category)`
    plus a concern bonus, thresholded into low / medium / high.
-10. **Synthesise** (`gemini/answer-question.ts`) — concerns from the high-severity clauses become
-    questions for a lawyer. A failure here returns an empty checklist rather than failing the
-    analysis.
+10. **Synthesise** (`analyze-document.ts`) — questions for a lawyer from the analyzed clauses are collected locally, deduplicated, sorted by severity, and capped at 10 to form the lawyer checklist.
 11. **Cache and return** the `DocumentAnalysis`.
 
 ## Request walkthrough — `POST /api/ask`

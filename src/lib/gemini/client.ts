@@ -83,8 +83,6 @@ export async function generateStructured<T>(request: StructuredRequest<T>): Prom
         },
       });
       raw = response.text ?? "";
-      // eslint-disable-next-line no-console
-      console.log(`[${request.logLabel}] attempt=${attempt} status=200 latency=${Date.now() - startTime}ms`);
     } catch (error) {
       const isAbort = error instanceof DOMException && error.name === "AbortError";
       let status = isAbort ? "timeout" : "error";
