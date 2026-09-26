@@ -77,3 +77,13 @@ File uploads (PDF and DOCX) are treated as untrusted input exactly like pasted t
 - **MIME Validation**: Validated by inspecting the actual magic bytes of the file buffer (e.g. `%PDF`), not relying on user-provided filename extensions or `content-type` headers.
 - **Text Extraction**: The extracted text is passed through the same `sanitiseDocumentText` routine as pasted text to neutralise injection attempts hidden inside the file payload.
 - **Rate limiting**: The `/api/extract` route enforces the same IP-based rate limiting as the main analysis path, as PDF extraction invokes the model.
+
+## Dependency advisories
+
+The `npm audit` report currently flags 7 advisories in our dependencies. None of these vulnerabilities are present in the production runtime. They exclusively affect the test runner, the local development server, and build-time CSS processing. Each available fix requires a breaking major upgrade (`vitest` v5, `next` v16), which was judged to present a worse regression risk for this release than the advisories themselves. The intended remediation path is to upgrade `vitest` and `next` in a separate, dedicated change with full test verification.
+
+| Package | Severity | Why it is not in the production path |
+|---|---|---|
+| `vitest` / `@vitest/mocker` | Moderate | Only executed locally and in CI to run the offline test suite. |
+| `esbuild` (via `vite`) | Moderate | Only used by the local development server; not included in the production build. |
+| `postcss` (via `next`) | High / Critical | Only runs at build time to process CSS; the runtime bundle receives static CSS. |
