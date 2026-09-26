@@ -6,6 +6,11 @@ import { maskPii } from "@/lib/pii";
 import { clientIpFromHeaders, enforceRateLimit } from "@/lib/rate-limit";
 import { enforceSameOrigin } from "@/lib/origin-guard";
 import { askRequestSchema } from "@/lib/types";
+import { TtlCache, cacheKey } from "@/lib/cache";
+import { PROMPT_VERSION } from "@/lib/gemini/prompts";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const answerCache = new TtlCache<any>();
 
 /** Node runtime, matching the other routes that share the Gemini client. */
 export const runtime = "nodejs";
@@ -43,7 +48,14 @@ export async function POST(request: Request): Promise<NextResponse> {
       text: maskPii(sanitiseDocumentText(clause.text).text).text,
     }));
 
+    const key = cacheKey(safeQuestion, JSON.stringify(safeClauses.map(c => c.id)), perspective, PROMPT_VERSION);
+    const cached = answerCache.get(key);
+    if (cached) {
+      return NextResponse.json(cached);
+    }
+
     const answer = await answerQuestion(safeQuestion, safeClauses, perspective);
+    answerCache.set(key, answer);
     return NextResponse.json(answer);
   } catch (error) {
     const { status, body } = toSafeError(error);

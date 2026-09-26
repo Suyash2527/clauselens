@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 
-const DEFAULT_TTL_MS = 15 * 60 * 1_000;
-const DEFAULT_MAX_ENTRIES = 50;
+const DEFAULT_TTL_MS = 60 * 60 * 1_000;
+const DEFAULT_MAX_ENTRIES = 200;
 
 interface CacheEntry<T> {
   value: T;
@@ -18,22 +18,38 @@ interface CacheEntry<T> {
  */
 export class TtlCache<T> {
   private readonly store = new Map<string, CacheEntry<T>>();
+  private hits = 0;
+  private misses = 0;
 
   constructor(
     private readonly ttlMs: number = DEFAULT_TTL_MS,
     private readonly maxEntries: number = DEFAULT_MAX_ENTRIES,
   ) {}
 
+  stats() {
+    return {
+      size: this.store.size,
+      hits: this.hits,
+      misses: this.misses,
+      hitRate: this.hits + this.misses > 0 ? this.hits / (this.hits + this.misses) : 0
+    };
+  }
+
   get(key: string): T | undefined {
     const entry = this.store.get(key);
-    if (!entry) return undefined;
+    if (!entry) {
+      this.misses++;
+      return undefined;
+    }
     if (Date.now() > entry.expiresAt) {
       this.store.delete(key);
+      this.misses++;
       return undefined;
     }
     // Map preserves insertion order, so re-inserting marks the entry most recent.
     this.store.delete(key);
     this.store.set(key, entry);
+    this.hits++;
     return entry.value;
   }
 

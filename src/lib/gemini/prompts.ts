@@ -1,6 +1,8 @@
 import { fenceDocument } from "../injection-guard";
 import type { Perspective } from "../types";
 
+export const PROMPT_VERSION = "classify@v3";
+
 /**
  * Every system instruction restates the scope limit from the brief: this tool
  * explains documents, it does not advise. The boundary is enforced in the
