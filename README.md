@@ -85,11 +85,20 @@ ask                follow-up Q&A grounded in the clauses, with clause citations
 - See [`SECURITY.md`](SECURITY.md) for full details on headers, mitigation, and dependency advisories.
 
 ### Efficiency
-- Batched classification: `src/lib/gemini/classify-clauses.ts` runs 10 clauses per prompt concurrently.
-- Severity scoring is calculated locally without a model call (`src/lib/risk-scoring.ts`).
+- **Batched classification**: `src/lib/gemini/classify-clauses.ts` runs up to 20 clauses or ~8000 tokens per prompt concurrently (max 3 batches in flight).
+- **Severity scoring** is calculated locally without a model call (`src/lib/risk-scoring.ts`).
+- **Text Extraction**: Uses local `unpdf` and `mammoth` parsing before falling back to Gemini for image-based PDFs.
+
+**20-clause text-based PDF analysis (Before vs After Efficiency Updates):**
+| Step | Before (AI Calls) | After (AI Calls) |
+|---|---|---|
+| Text Extraction | 1 | 0 |
+| Classification | 2 | 1 |
+| Lawyer Checklist | 1 | 1 |
+| **Total** | **4** | **2** (50% reduction) |
 
 ### Testing
-- 64 tests across 10 files cover chunking, validation, scoring, extraction, injection guard, and orchestration.
+- 81 tests across 12 files cover chunking, validation, scoring, extraction, concurrency, injection guard, and orchestration.
 - The Vitest suite runs offline with no API key via demo mode stubs (`npm run test`).
 - GitHub Actions automatically runs `typecheck`, `lint`, and `test` on every push.
 

@@ -27,8 +27,8 @@ The rule that shapes everything: **`src/lib/` never imports React, and component
    preceding clause, split oversized clauses on sentence boundaries. Character offsets into the
    normalised text are preserved so the UI can show exact source.
 7. **Cap** — at most 60 clauses; `truncated: true` is returned rather than silently dropping text.
-8. **Classify** (`gemini/classify-clauses.ts`) — clauses are batched 10 per call and the batches run
-   concurrently. Each call passes `responseSchema`; the reply is validated with Zod and filtered
+8. **Classify** (`gemini/classify-clauses.ts`) — clauses are batched up to 20 per call (or ~8000 tokens) and the batches run
+   concurrently (max 3 in flight). Each call passes `responseSchema`; the reply is validated with Zod and filtered
    against the known clause ids.
 9. **Score** (`risk-scoring.ts`) — pure local computation. `burdenScore × roleWeight(category)`
    plus a concern bonus, thresholded into low / medium / high.
@@ -54,10 +54,10 @@ consequence is that `tests/risk-scoring.test.ts` can assert the central product 
 
 ## Why classification is batched
 
-Per-clause calls make cost and latency scale linearly with document length. Batching ten clauses
-per call cuts a 40-clause lease from 40 requests to 4, and running those four concurrently keeps
-wall-clock time roughly flat as documents grow. The batch size is a single constant in
-`classify-clauses.ts`.
+Per-clause calls make cost and latency scale linearly with document length. Batching up to 20 clauses
+or ~8000 tokens per call cuts a 40-clause lease from 40 requests down to 2. Running those concurrently
+(capped at 3 in flight) keeps wall-clock time flat and limits memory spikes as documents grow. The
+batching logic is handled dynamically in `classify-clauses.ts`.
 
 ## Extension points
 

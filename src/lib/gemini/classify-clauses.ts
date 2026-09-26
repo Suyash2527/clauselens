@@ -4,31 +4,40 @@ import { generateStructured, MODELS } from "./client";
 import { classificationSystemPrompt, classificationUserPrompt } from "./prompts";
 import { clauseBatchResponseSchema } from "./schemas";
 
-/**
- * Clauses are classified in batches rather than one call per clause. A 40-clause
- * lease costs 4 requests instead of 40 — the single largest efficiency win in
- * the pipeline, and it keeps latency roughly flat as documents grow.
- */
-const BATCH_SIZE = 10;
+import { runWithConcurrency } from "../concurrency";
 
 const clauseBatchSchema = z.object({ clauses: z.array(clauseAnalysisSchema) });
 
 /**
  * Classifies every chunk from the given perspective and returns the analyses
- * keyed by clause id. Batches run in parallel; one failed batch fails the whole
- * call, because a partially analysed contract would understate its risk.
+ * keyed by clause id. Batches run concurrently (up to 3 in flight). 
+ * One failed batch fails the whole call, because a partially analysed contract 
+ * would understate its risk.
  */
 export async function classifyClauses(
   chunks: readonly ClauseChunk[],
   perspective: Perspective,
 ): Promise<Map<string, ClauseAnalysis>> {
-  const batches = toBatches(chunks, BATCH_SIZE);
-  const results = await Promise.all(batches.map((batch) => classifyBatch(batch, perspective)));
+  const batches = toDynamicBatches(chunks);
+  const results = await runWithConcurrency(batches, 3, (batch) => classifyBatch(batch, perspective));
 
-  const analysesById = new Map<string, ClauseAnalysis>();
+  // Build a lookup map from the returned analyses
+  const lookup = new Map<string, ClauseAnalysis>();
   for (const batch of results) {
-    for (const analysis of batch) analysesById.set(analysis.id, analysis);
+    for (const analysis of batch) {
+      lookup.set(analysis.id, analysis);
+    }
   }
+
+  // Populate the final Map by iterating through chunks to preserve the original clause order
+  const analysesById = new Map<string, ClauseAnalysis>();
+  for (const chunk of chunks) {
+    const analysis = lookup.get(chunk.id);
+    if (analysis) {
+      analysesById.set(chunk.id, analysis);
+    }
+  }
+  
   return analysesById;
 }
 
@@ -50,8 +59,28 @@ async function classifyBatch(
   return clauses.filter((analysis) => knownIds.has(analysis.id));
 }
 
-function toBatches<T>(items: readonly T[], size: number): T[][] {
-  const batches: T[][] = [];
-  for (let i = 0; i < items.length; i += size) batches.push(items.slice(i, i + size));
+function toDynamicBatches(chunks: readonly ClauseChunk[]): ClauseChunk[][] {
+  const batches: ClauseChunk[][] = [];
+  let currentBatch: ClauseChunk[] = [];
+  let currentTokens = 0;
+
+  for (const chunk of chunks) {
+    const chunkTokens = Math.ceil(chunk.text.length / 4);
+    
+    // If adding this chunk would exceed limits (and the batch is not empty)
+    if (currentBatch.length > 0 && (currentBatch.length >= 20 || currentTokens + chunkTokens > 8000)) {
+      batches.push(currentBatch);
+      currentBatch = [];
+      currentTokens = 0;
+    }
+    
+    currentBatch.push(chunk);
+    currentTokens += chunkTokens;
+  }
+  
+  if (currentBatch.length > 0) {
+    batches.push(currentBatch);
+  }
+  
   return batches;
 }
