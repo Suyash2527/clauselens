@@ -2,13 +2,13 @@
 
 import { PERSPECTIVES, type Perspective } from "@/lib/types";
 
-const LABELS: Record<Perspective, string> = {
-  tenant: "I am the tenant",
-  landlord: "I am the landlord",
-  employee: "I am the employee",
-  employer: "I am the employer",
-  freelancer: "I am the freelancer or contractor",
-  client: "I am the client hiring",
+const LABELS: Record<Perspective, { title: string; desc: string }> = {
+  tenant: { title: "Tenant", desc: "I am renting the property" },
+  landlord: { title: "Landlord", desc: "I am renting out my property" },
+  employee: { title: "Employee", desc: "I am being hired" },
+  employer: { title: "Employer", desc: "I am hiring an employee" },
+  freelancer: { title: "Freelancer", desc: "I am working as a freelancer" },
+  client: { title: "Client", desc: "I am hiring a freelancer" },
 };
 
 interface Props {
@@ -19,26 +19,35 @@ interface Props {
 
 export function RoleSelector({ value, onChange, disabled }: Props) {
   return (
-    <div>
-      <label className="label" htmlFor="perspective">
+    <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
+      <legend className="label" style={{ padding: 0, marginBottom: "0.5rem" }}>
         Your side of the agreement
-      </label>
-      <p id="perspective-help" style={{ margin: "0.35rem 0 0.6rem", color: "var(--ink-soft)" }}>
-        The same clause is a risk for one side and a protection for the other. Pick yours.
-      </p>
-      <select
-        id="perspective"
-        aria-describedby="perspective-help"
-        value={value}
-        disabled={disabled}
-        onChange={(event) => onChange(event.target.value as Perspective)}
-      >
-        {PERSPECTIVES.map((perspective) => (
-          <option key={perspective} value={perspective}>
-            {LABELS[perspective]}
-          </option>
-        ))}
-      </select>
-    </div>
+      </legend>
+      <div className="role-grid">
+        {PERSPECTIVES.map((perspective) => {
+          const isActive = value === perspective;
+          return (
+            <label
+              key={perspective}
+              className={`role-card ${isActive ? "role-card--active" : ""}`}
+            >
+              <input
+                type="radio"
+                name="perspective"
+                className="role-card-input"
+                value={perspective}
+                checked={isActive}
+                disabled={disabled}
+                onChange={(event) => onChange(event.target.value as Perspective)}
+              />
+              <div className="role-card-content">
+                <div className="role-card-title">{LABELS[perspective].title}</div>
+                <p className="role-card-desc">{LABELS[perspective].desc}</p>
+              </div>
+            </label>
+          );
+        })}
+      </div>
+    </fieldset>
   );
 }

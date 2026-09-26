@@ -5,10 +5,12 @@ import type { DocumentAnalysis, Perspective } from "@/lib/types";
 import { Disclaimer } from "@/components/Disclaimer";
 import { RoleSelector } from "@/components/RoleSelector";
 import { ResultsView } from "@/components/ResultsView";
+import { DocumentInput } from "@/components/DocumentInput";
 
 const MIN_CHARS = 50;
 
 export default function HomePage() {
+  const [step, setStep] = useState<1 | 2 | 3>(1);
   const [text, setText] = useState("");
   const [perspective, setPerspective] = useState<Perspective>("tenant");
   const [analysis, setAnalysis] = useState<DocumentAnalysis | null>(null);
@@ -17,15 +19,16 @@ export default function HomePage() {
   const [extracting, setExtracting] = useState(false);
   const [extractedFile, setExtractedFile] = useState<{name: string, size: number} | null>(null);
   const [extractedCount, setExtractedCount] = useState<number | null>(null);
-
   const [pendingUpload, setPendingUpload] = useState<File | null>(null);
-  const confirmRef = useRef<HTMLDivElement>(null);
+
+  const step1Ref = useRef<HTMLHeadingElement>(null);
+  const step2Ref = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
-    if (pendingUpload && confirmRef.current) {
-      confirmRef.current.focus();
-    }
-  }, [pendingUpload]);
+    if (step === 1) step1Ref.current?.focus();
+    if (step === 2) step2Ref.current?.focus();
+    // Step 3 focus is handled inside ResultsView
+  }, [step]);
 
   function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -99,6 +102,7 @@ export default function HomePage() {
         return;
       }
       setAnalysis(body as DocumentAnalysis);
+      setStep(3);
     } catch {
       setError("Could not reach the server. Check your connection and try again.");
     } finally {
@@ -112,8 +116,7 @@ export default function HomePage() {
         <p className="label">ClauseLens</p>
         <h1>Understand what you are about to sign.</h1>
         <p style={{ maxWidth: "44rem", color: "var(--ink-soft)" }}>
-          Paste a rental, employment, or freelance agreement. Every clause is explained in plain
-          English and weighed from your side of the deal, with the original wording one click away.
+          Paste a rental, employment, or freelance agreement. We'll explain each clause in plain English and point out risks based on your role.
         </p>
       </header>
 
@@ -121,86 +124,71 @@ export default function HomePage() {
 
       <Disclaimer />
 
-      <section aria-labelledby="input-heading" style={{ marginTop: "2rem" }}>
-        <h2 id="input-heading">Your document</h2>
+      {step === 1 && (
+        <section aria-labelledby="step1-heading" className="step-header animate-in" style={{ marginTop: "2rem" }}>
+          <span className="step-indicator">Step 1 of 3</span>
+          <h2 id="step1-heading" tabIndex={-1} ref={step1Ref} style={{ outline: 'none' }}>
+            Who are you in this agreement?
+          </h2>
 
-        <RoleSelector value={perspective} onChange={setPerspective} disabled={pending || extracting} />
+          <RoleSelector value={perspective} onChange={setPerspective} disabled={false} />
 
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginTop: "1.5rem" }}>
-          <label className="label" htmlFor="document">
-            Paste the agreement text
-          </label>
-          <label 
-            id="document-upload-label"
-            htmlFor="document-upload" 
-            className="button" 
-            tabIndex={0}
-            onKeyDown={(e) => { 
-              if (e.key === "Enter" || e.key === " ") { 
-                e.preventDefault(); 
-                document.getElementById("document-upload")?.click(); 
-              } 
-            }}
-            style={{ fontSize: "0.875rem", padding: "0.25rem 0.75rem", cursor: "pointer", opacity: (pending || extracting) ? 0.5 : 1 }}>
-            Upload PDF or DOCX
-          </label>
-          <input
-            type="file"
-            id="document-upload"
-            accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            style={{ display: "none" }}
-            onChange={handleFileChange}
-            disabled={pending || extracting}
+          <div className="button-group">
+            <button className="button" type="button" onClick={() => setStep(2)} suppressHydrationWarning>
+              Next: Add your document
+            </button>
+          </div>
+        </section>
+      )}
+
+      {step === 2 && (
+        <section aria-labelledby="step2-heading" className="step-header animate-in" style={{ marginTop: "2rem" }}>
+          <span className="step-indicator">Step 2 of 3</span>
+          <h2 id="step2-heading" tabIndex={-1} ref={step2Ref} style={{ outline: 'none' }}>
+            Add your document
+          </h2>
+
+          <DocumentInput
+            text={text}
+            setText={setText}
+            pendingUpload={pendingUpload}
+            extractedFile={extractedFile}
+            extractedCount={extractedCount}
+            extracting={extracting}
+            pending={pending}
+            error={error}
+            onFileChange={handleFileChange}
+            onCancelUpload={cancelUpload}
+            onConfirmUpload={performUpload}
           />
-        </div>
-        <textarea
-          id="document"
-          value={text}
-          disabled={pending || extracting}
-          aria-describedby="document-help"
-          onChange={(event) => setText(event.target.value)}
-          placeholder="Paste the full text of the agreement here…"
-          style={{ marginTop: "0.5rem" }}
-        />
-        <div id="document-help" className="label" style={{ display: "flex", justifyContent: "space-between" }}>
-          <span>{text.length.toLocaleString()} characters · nothing is stored after the page is closed</span>
-          {extractedFile && (
-            <span>
-              {extractedFile.name} ({Math.round(extractedFile.size / 1024)} KB)
-            </span>
-          )}
-        </div>
 
-        <button
-          className="button"
-          type="button"
-          onClick={analyze}
-          disabled={pending || extracting || text.trim().length < MIN_CHARS}
-          style={{ marginTop: "1rem" }}
-        >
-          {pending ? "Reading the document…" : "Explain this document"}
-        </button>
+          <div className="button-group">
+            <button className="button button--secondary" type="button" onClick={() => setStep(1)} disabled={pending || extracting} suppressHydrationWarning>
+              Back to role selection
+            </button>
+            <button
+              className="button"
+              type="button"
+              onClick={analyze}
+              disabled={pending || extracting || text.trim().length < MIN_CHARS}
+              suppressHydrationWarning
+            >
+              {pending ? "Reading the document…" : "Explain this document"}
+            </button>
+          </div>
+        </section>
+      )}
 
-        <div role="status" aria-live="polite" style={{ marginTop: "1rem" }}>
-          {pendingUpload && (
-            <div style={{ padding: "1rem", border: "1px solid var(--ink-soft)", borderRadius: "4px", marginBottom: "1rem" }} tabIndex={-1} ref={confirmRef}>
-              <p>Uploading will replace your current text. Are you sure?</p>
-              <div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
-                <button className="button" type="button" onClick={() => performUpload(pendingUpload)}>Replace existing text</button>
-                <button className="button" type="button" onClick={cancelUpload}>Cancel</button>
-              </div>
-            </div>
-          )}
-          {extracting && <p>Extracting text from document...</p>}
-          {pending && <p>Splitting the document into clauses and reviewing each one.</p>}
-          {extractedCount !== null && !pending && !extracting && !error && (
-            <p>Extracted {extractedCount.toLocaleString()} characters from {extractedFile?.name}.</p>
-          )}
-          {error && <p style={{ color: "var(--oxblood)" }}>{error}</p>}
+      {step === 3 && analysis && (
+        <div className="animate-in">
+          <ResultsView analysis={analysis} />
+          <div className="button-group" style={{ marginTop: "2rem" }}>
+            <button className="button button--secondary" type="button" onClick={() => { setStep(1); setAnalysis(null); setText(""); }} suppressHydrationWarning>
+              Start over with a new document
+            </button>
+          </div>
         </div>
-      </section>
-
-      {analysis && <ResultsView analysis={analysis} />}
+      )}
     </main>
   );
 }

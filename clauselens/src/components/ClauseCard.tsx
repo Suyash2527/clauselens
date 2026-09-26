@@ -22,20 +22,19 @@ export function ClauseCard({ clause }: { clause: AnalyzedClause }) {
 
   return (
     <article className={`clause clause--${severity}`} aria-labelledby={`${sourceId}-heading`}>
-      <header style={{ display: "flex", gap: "0.75rem", alignItems: "baseline", flexWrap: "wrap" }}>
-        <span className="label">Clause {clause.index}</span>
-        <span className="label">{readableCategory(analysis.category)}</span>
+      <header style={{ display: "flex", gap: "0.75rem", alignItems: "baseline", flexWrap: "wrap", marginBottom: "0.5rem" }}>
         <RiskBadge severity={severity} />
+        <span className="label">Clause {clause.index} &bull; {readableCategory(analysis.category)}</span>
       </header>
 
-      <h3 id={`${sourceId}-heading`} style={{ fontSize: "1.15rem", marginTop: "0.5rem" }}>
+      <h3 id={`${sourceId}-heading`} style={{ fontSize: "1.25rem", margin: "0.5rem 0 1rem" }}>
         {analysis.plainSummary}
       </h3>
 
       {analysis.concerns.length > 0 && (
         <>
           <p className="label">What to watch</p>
-          <ul>
+          <ul style={{ marginTop: "0.5rem", marginBottom: "1rem" }}>
             {analysis.concerns.map((concern) => (
               <li key={concern}>{concern}</li>
             ))}
@@ -46,7 +45,7 @@ export function ClauseCard({ clause }: { clause: AnalyzedClause }) {
       <button
         type="button"
         className="button"
-        style={{ background: "transparent", color: "var(--ink)", padding: "0.3rem 0.7rem" }}
+        style={{ background: "transparent", color: "var(--ink)", padding: "0.3rem 0.7rem", marginTop: "0.5rem", border: "1px solid var(--rule)" }}
         aria-expanded={showSource}
         aria-controls={sourceId}
         onClick={() => setShowSource((open) => !open)}
