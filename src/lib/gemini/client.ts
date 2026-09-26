@@ -60,30 +60,62 @@ export interface StructuredRequest<T> {
  * here and surfaced as the generic `upstreamFailure`, never as provider text.
  */
 export async function generateStructured<T>(request: StructuredRequest<T>): Promise<T> {
-  let raw: string;
-  try {
-    const response = await getGenAI().models.generateContent({
-      model: request.model,
-      contents: request.contents,
-      config: {
-        systemInstruction: request.systemInstruction,
-        responseMimeType: "application/json",
-        responseSchema: request.responseSchema,
-        temperature: request.temperature,
-      },
-    });
-    raw = response.text ?? "";
-  } catch (error) {
-    console.error(`[${request.logLabel}]`, error);
-    throw upstreamFailure();
-  }
+  const MAX_ATTEMPTS = 3;
+  let attempt = 0;
+  
+  while (true) {
+    attempt++;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(new DOMException("Timeout", "AbortError")), 25000);
 
-  const parsed = request.validator.safeParse(parseJsonOrNull(raw));
-  if (!parsed.success) {
-    console.error(`[${request.logLabel}] schema mismatch`, parsed.error.issues);
-    throw upstreamFailure();
+    let raw: string = "";
+    const startTime = Date.now();
+    try {
+      const response = await getGenAI().models.generateContent({
+        model: request.model,
+        contents: request.contents,
+        config: {
+          systemInstruction: request.systemInstruction,
+          responseMimeType: "application/json",
+          responseSchema: request.responseSchema,
+          temperature: request.temperature,
+          abortSignal: controller.signal,
+        },
+      });
+      raw = response.text ?? "";
+      // eslint-disable-next-line no-console
+      console.log(`[${request.logLabel}] attempt=${attempt} status=200 latency=${Date.now() - startTime}ms`);
+    } catch (error) {
+      const isAbort = error instanceof DOMException && error.name === "AbortError";
+      let status = isAbort ? "timeout" : "error";
+      if (error instanceof Error) {
+        const match = error.message.match(/(\d{3})/);
+        if (match && match[1]) status = match[1];
+      }
+      
+      console.error(`[${request.logLabel}] attempt=${attempt} status=${status} latency=${Date.now() - startTime}ms`);
+      
+      const retryableStatusCodes = ["429", "500", "502", "503", "504"];
+      const isRetryable = isAbort || retryableStatusCodes.includes(status);
+      
+      if (attempt < MAX_ATTEMPTS && isRetryable) {
+        const jitter = Math.random() * 200;
+        const backoff = (300 * Math.pow(2, attempt)) + jitter;
+        await new Promise((resolve) => setTimeout(resolve, backoff));
+        continue;
+      }
+      throw upstreamFailure();
+    } finally {
+      clearTimeout(timeoutId);
+    }
+
+    const parsed = request.validator.safeParse(parseJsonOrNull(raw));
+    if (!parsed.success) {
+      console.error(`[${request.logLabel}] schema mismatch`, parsed.error.issues);
+      throw upstreamFailure();
+    }
+    return parsed.data;
   }
-  return parsed.data;
 }
 
 /** Malformed JSON becomes `null`, which the Zod validator then rejects. */
