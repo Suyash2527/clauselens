@@ -105,7 +105,7 @@ ask                follow-up Q&A grounded in the clauses, with clause citations
 
 ## Assumptions
 
-- **Supported file types**: Text pasting, PDFs, and DOCX files. PDF extraction sends the file to Gemini via `inlineData`. DOCX uses `mammoth` locally to extract text.
+- **Supported file types**: Text pasting, PDFs, and DOCX files. PDF extraction attempts a fast local parse using `unpdf` first, falling back to Gemini via `inlineData` only for scanned documents lacking text. DOCX uses `mammoth` locally to extract text.
 - **English-only**: Clause numbering heuristics target common-law and standard English conventions.
 - **60-clause cap**: Analysis is capped at 60 clauses to bound latency. Truncation is explicitly reported to the user.
 - **Ephemeral State**: In-process caching bounds memory footprint. No document text is persisted to a database or disk.
