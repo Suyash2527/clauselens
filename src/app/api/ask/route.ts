@@ -11,6 +11,8 @@ import { PROMPT_VERSION } from "@/lib/gemini/prompts";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const answerCache = new TtlCache<any>();
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const inFlightAnswers = new Map<string, Promise<any>>();
 
 /** Node runtime, matching the other routes that share the Gemini client. */
 export const runtime = "nodejs";
@@ -54,9 +56,23 @@ export async function POST(request: Request): Promise<NextResponse> {
       return NextResponse.json(cached);
     }
 
-    const answer = await answerQuestion(safeQuestion, safeClauses, perspective);
-    answerCache.set(key, answer);
-    return NextResponse.json(answer);
+    const inFlight = inFlightAnswers.get(key);
+    if (inFlight) {
+      return NextResponse.json(await inFlight);
+    }
+
+    const promise = (async () => {
+      try {
+        const answer = await answerQuestion(safeQuestion, safeClauses, perspective);
+        answerCache.set(key, answer);
+        return answer;
+      } finally {
+        inFlightAnswers.delete(key);
+      }
+    })();
+    inFlightAnswers.set(key, promise);
+
+    return NextResponse.json(await promise);
   } catch (error) {
     const { status, body } = toSafeError(error);
     return NextResponse.json(body, { status });

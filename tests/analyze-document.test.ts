@@ -145,4 +145,41 @@ describe("analyzeDocument", () => {
     // Only one model call
     expect(deps.classify).toHaveBeenCalledTimes(1);
   });
+  it("coalesces identical in-flight requests into a single model call", async () => {
+    let resolver: (val: unknown) => void;
+    const promise = new Promise((resolve) => { resolver = resolve; });
+
+    const deps = stubDeps({
+      classify: vi.fn(async (chunks, _perspective) => {
+        await promise;
+        const map = new Map<string, ClauseAnalysis>();
+        for (const chunk of chunks) {
+          map.set(chunk.id, {
+            id: chunk.id,
+            category: "other",
+            plainSummary: "ok",
+            affectsUser: false,
+            burdenScore: 2,
+            concerns: [],
+            questionForLawyer: null,
+          });
+        }
+        return map;
+      }),
+    });
+
+    const unique = `${CONTRACT}\n\n4. COALESCE\nTesting coalescing requests.`;
+    
+    // Fire two identical requests simultaneously
+    const p1 = analyzeDocument(unique, "tenant", deps);
+    const p2 = analyzeDocument(unique, "tenant", deps);
+
+    // Let the classify function complete
+    resolver!(null);
+    
+    await Promise.all([p1, p2]);
+
+    // Should only call classify once
+    expect(deps.classify).toHaveBeenCalledTimes(1);
+  });
 });

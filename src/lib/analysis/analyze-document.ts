@@ -30,6 +30,7 @@ export function buildChecklistFromClauses(clauses: readonly AnalyzedClause[]): s
 }
 
 const analysisCache = new TtlCache<DocumentAnalysis>();
+const inFlightAnalyses = new Map<string, Promise<DocumentAnalysis>>();
 
 /**
  * Dependencies are injected so the orchestrator can be tested without network
@@ -56,27 +57,39 @@ export async function analyzeDocument(
   const cached = analysisCache.get(key);
   if (cached) return cached;
 
-  const { text } = sanitiseDocumentText(rawText);
-  const { text: maskedText } = maskPii(text);
-  const allChunks = chunkIntoClauses(maskedText);
-  if (allChunks.length === 0) {
-    throw badRequest("No readable clauses were found. Check that the text pasted correctly.");
-  }
+  const inFlight = inFlightAnalyses.get(key);
+  if (inFlight) return inFlight;
 
-  const truncated = allChunks.length > MAX_CLAUSES;
-  const chunks = truncated ? allChunks.slice(0, MAX_CLAUSES) : allChunks;
+  const promise = (async () => {
+    try {
+      const { text } = sanitiseDocumentText(rawText);
+      const { text: maskedText } = maskPii(text);
+      const allChunks = chunkIntoClauses(maskedText);
+      if (allChunks.length === 0) {
+        throw badRequest("No readable clauses were found. Check that the text pasted correctly.");
+      }
 
-  const analyses = await deps.classify(chunks, perspective);
-  const clauses = attachAnalyses(chunks, analyses, perspective);
-  const redFlags = clauses
-    .filter((clause) => clause.severity === "high")
-    .sort((a, b) => b.analysis.burdenScore - a.analysis.burdenScore);
+      const truncated = allChunks.length > MAX_CLAUSES;
+      const chunks = truncated ? allChunks.slice(0, MAX_CLAUSES) : allChunks;
 
-  const lawyerChecklist = buildChecklistFromClauses(clauses);
+      const analyses = await deps.classify(chunks, perspective);
+      const clauses = attachAnalyses(chunks, analyses, perspective);
+      const redFlags = clauses
+        .filter((clause) => clause.severity === "high")
+        .sort((a, b) => b.analysis.burdenScore - a.analysis.burdenScore);
 
-  const result: DocumentAnalysis = { perspective, clauses, redFlags, lawyerChecklist, truncated };
-  analysisCache.set(key, result);
-  return result;
+      const lawyerChecklist = buildChecklistFromClauses(clauses);
+
+      const result: DocumentAnalysis = { perspective, clauses, redFlags, lawyerChecklist, truncated };
+      analysisCache.set(key, result);
+      return result;
+    } finally {
+      inFlightAnalyses.delete(key);
+    }
+  })();
+
+  inFlightAnalyses.set(key, promise);
+  return promise;
 }
 
 /** Pairs each chunk with its analysis and severity; chunks the model skipped are dropped. */
