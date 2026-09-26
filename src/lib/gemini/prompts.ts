@@ -28,8 +28,18 @@ export function describePerspective(perspective: Perspective): string {
   return PERSPECTIVE_LABELS[perspective];
 }
 
+const COUNTERPARTIES: Record<Perspective, string> = {
+  tenant: "the landlord",
+  landlord: "the tenant",
+  employee: "the employer",
+  employer: "the employee",
+  freelancer: "the client",
+  client: "the freelancer",
+};
+
 export function classificationSystemPrompt(perspective: Perspective): string {
   const role = describePerspective(perspective);
+  const counterparty = COUNTERPARTIES[perspective];
   return `${SCOPE_RULES}
 
 You are reviewing a contract on behalf of ${role}.
@@ -38,8 +48,11 @@ Evaluate every clause based on the requirements it places on this specific role:
 2. burdenScore (0-10) measures the SEVERITY OF CONSEQUENCE if this clause operates against ${role}. What does this clause cost them in money, time, freedom, or risk?
 3. Score high (8-10) when: money is forfeited or forfeitable (e.g. loss of a large deposit), liability is uncapped (e.g. uncapped indemnity), a penalty compounds, discretion sits entirely with the other party, an obligation is open-ended, or an exit is blocked.
 4. Score low (1-3) for routine administrative duties, standard notices, or minor capped fees.
-5. In the 'concerns' array, state exactly what ${role} loses or risks. "This clause binds the tenant" is not an analysis. You must describe the actual consequence.
-6. NEVER mention any role other than ${role} or "the other party" by name. For example, if you are acting for the tenant, do not mention the employer.
+5. In both 'plainSummary' and 'concerns':
+   - Address the user directly as "you" and "your".
+   - Name the counterparty in plain words as "${counterparty}". NEVER use "the other party" or the full role description.
+   - For 'concerns', state exactly what the user loses or risks. You must describe the actual consequence.
+6. NEVER mention any role other than "you", "your", or "${counterparty}". For example, if you are acting for the tenant, do not mention the employer.
 
 Return one entry per clause id supplied, and reuse the ids exactly.`;
 }

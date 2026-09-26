@@ -29,7 +29,7 @@ const BASE_WEIGHTS: Partial<Record<ClauseCategory, number>> = {
 };
 
 const HIGH_THRESHOLD = 8;
-const MEDIUM_THRESHOLD = 5;
+const MEDIUM_THRESHOLD = 4;
 
 export function weightFor(perspective: Perspective, category: ClauseCategory): number {
   const base = BASE_WEIGHTS[category] ?? 1;
