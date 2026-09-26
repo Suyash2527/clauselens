@@ -82,6 +82,7 @@ ask                follow-up Q&A grounded in the clauses, with clause citations
 - All incoming requests and model responses are validated using strictly defined Zod schemas.
 - A fixed-window per-IP rate limiter guards all routes before any processing or model calls.
 - Strict transport security headers are enforced in `next.config.ts`, including `Strict-Transport-Security`, `Cross-Origin-Opener-Policy`, and a `Content-Security-Policy-Report-Only`.
+- `npm audit` reports **0 vulnerabilities**.
 - See [`SECURITY.md`](SECURITY.md) for full details on headers, mitigation, and dependency advisories.
 
 ### Efficiency

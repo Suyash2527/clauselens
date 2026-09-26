@@ -78,11 +78,24 @@ File uploads (PDF and DOCX) are treated as untrusted input exactly like pasted t
 - **Text Extraction**: The extracted text is passed through the same `sanitiseDocumentText` routine as pasted text to neutralise injection attempts hidden inside the file payload.
 - **Rate limiting**: The `/api/extract` route enforces the same IP-based rate limiting as the main analysis path, as PDF extraction falls back to the model for scanned documents.
 
-## Dependency advisories
+## Dependency audit
+`npm audit` reports **0 vulnerabilities**. It runs on every push in CI (`npm audit --audit-level=moderate`); Dependabot opens update PRs weekly.
 
-The `npm audit` report currently flags 4 advisories in our dependencies. None of these vulnerabilities are present in the production runtime. They exclusively affect the test runner and local development server. Each available fix requires a breaking major upgrade (`vitest` v5), which was judged to present a worse regression risk for this release than the advisories themselves. The intended remediation path is to upgrade `vitest` in a separate, dedicated change with full test verification.
+## HTTP security headers
 
-| Package | Severity | Why it is not in the production path |
-|---|---|---|
-| `@vitest/mocker` | Moderate | Only executed locally and in CI to run the offline test suite. |
-| `vite` | High / Critical | Only used by the test runner and local development server; not included in the production build. |
+The following strict headers are enforced in `next.config.ts`:
+- `X-Content-Type-Options: nosniff`
+- `X-Frame-Options: DENY`
+- `Referrer-Policy: strict-origin-when-cross-origin`
+- `Permissions-Policy` (denying camera, microphone, geolocation, browsing-topics)
+- `Strict-Transport-Security` (max-age 2 years, includeSubDomains, preload)
+- `Cross-Origin-Opener-Policy: same-origin`
+- `Cross-Origin-Resource-Policy: same-origin`
+- `X-DNS-Prefetch-Control: off`
+- `X-Permitted-Cross-Domain-Policies: none`
+
+Additionally, a strict nonce-based `Content-Security-Policy` is applied via middleware to block `unsafe-inline` scripts and `unsafe-eval` (in production).
+
+## Personal data
+
+All documents and questions are scrubbed of Indian PII before leaving the server. Identifying strings such as Aadhaar, PAN, IFSC codes, phone numbers, email addresses, and account numbers are replaced with placeholder labels (e.g., `[AADHAAR]`) via `src/lib/pii.ts` prior to making any Gemini API call. No document text is persisted, and the in-process cache uses SHA-256 keys instead of cleartext.
