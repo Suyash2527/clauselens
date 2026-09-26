@@ -2,6 +2,8 @@
 
 ## Threat model
 
+See [docs/threat-model.md](docs/threat-model.md) for the STRIDE threat model.
+
 ClauseLens accepts arbitrary text from anonymous users and forwards it to a paid model API. Three
 risks follow from that: the document is attacker-controlled input to a prompt, the model endpoint
 is an abusable cost centre, and the API key is a credential that must never leave the server.

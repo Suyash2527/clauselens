@@ -83,7 +83,7 @@ ask                follow-up Q&A grounded in the clauses, with clause citations
 - A fixed-window per-IP rate limiter guards all routes before any processing or model calls.
 - Strict transport security headers are enforced in `next.config.ts`, including `Strict-Transport-Security`, `Cross-Origin-Opener-Policy`, and a `Content-Security-Policy-Report-Only`.
 - `npm audit` reports **0 vulnerabilities**.
-- See [`SECURITY.md`](SECURITY.md) for full details on headers, mitigation, and dependency advisories.
+- See [`SECURITY.md`](SECURITY.md) for full details on headers, mitigation, and dependency advisories, and [`docs/threat-model.md`](docs/threat-model.md) for the STRIDE threat model.
 
 ### Efficiency
 - **Batched classification**: `src/lib/gemini/classify-clauses.ts` runs up to 20 clauses or ~8000 tokens per prompt concurrently (max 3 batches in flight).
