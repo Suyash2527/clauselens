@@ -1,7 +1,8 @@
 import { useEffect, useRef } from "react";
 import type { DocumentAnalysis } from "@/lib/types";
 import { ClauseCard } from "./ClauseCard";
-import { QuestionPanel } from "./QuestionPanel";
+import dynamic from "next/dynamic";
+const QuestionPanel = dynamic(() => import("./QuestionPanel").then(mod => ({ default: mod.QuestionPanel })), { loading: () => <p aria-busy="true">Loading…</p> });
 
 /**
  * Step 3: red flags first, then the lawyer checklist, with the full clause list

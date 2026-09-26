@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { NETWORK_ERROR_MESSAGE, readErrorMessage } from "@/lib/errors";
 import type { AnalyzedClause, AskAnswer, Perspective } from "@/lib/types";
 
@@ -19,14 +19,22 @@ export function QuestionPanel({ clauses, perspective }: QuestionPanelProps) {
   const [answer, setAnswer] = useState<AskAnswer | null>(null);
   const [asking, setAsking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   async function ask() {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setAsking(true);
     setError(null);
     try {
       const response = await fetch("/api/ask", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
         body: JSON.stringify({
           question,
           perspective,
@@ -39,12 +47,22 @@ export function QuestionPanel({ clauses, perspective }: QuestionPanelProps) {
         return;
       }
       setAnswer(body as AskAnswer);
-    } catch {
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === "AbortError") {
+        return;
+      }
       setError(NETWORK_ERROR_MESSAGE);
     } finally {
-      setAsking(false);
+      if (abortControllerRef.current === controller) {
+        setAsking(false);
+      }
     }
   }
+
+  // Cancel any in-flight request if the component unmounts or document changes (though clauses are passed as props, unmount is the main issue).
+  useEffect(() => {
+    return () => abortControllerRef.current?.abort();
+  }, [clauses]);
 
   return (
     <section className="panel" aria-labelledby="ask-heading">
