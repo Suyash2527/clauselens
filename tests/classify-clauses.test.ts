@@ -15,7 +15,7 @@ describe("classifyClauses batch builder", () => {
   it("respects the count limit of 20 clauses", async () => {
     const chunks: ClauseChunk[] = Array.from({ length: 45 }, (_, i) => ({
       id: `c${i}`,
-      text: "short clause",
+      text: "This is a short clause.",
       index: i, startOffset: 0, endOffset: 12
     }));
 
@@ -55,9 +55,9 @@ describe("classifyClauses batch builder", () => {
 
   it("preserves order by index in the merged result", async () => {
     const chunks: ClauseChunk[] = [
-      { id: "a", text: "chunk a", index: 0, startOffset: 0, endOffset: 1 },
-      { id: "b", text: "chunk b", index: 1, startOffset: 0, endOffset: 1 },
-      { id: "c", text: "chunk c", index: 2, startOffset: 0, endOffset: 1 },
+      { id: "a", text: "chunk a.", index: 0, startOffset: 0, endOffset: 8 },
+      { id: "b", text: "chunk b.", index: 1, startOffset: 0, endOffset: 8 },
+      { id: "c", text: "chunk c.", index: 2, startOffset: 0, endOffset: 8 },
     ];
 
     vi.mocked(client.generateStructured).mockClear();

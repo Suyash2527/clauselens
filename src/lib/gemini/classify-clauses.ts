@@ -3,6 +3,7 @@ import { clauseAnalysisSchema, type ClauseAnalysis, type ClauseChunk, type Persp
 import { generateStructured, MODELS } from "./client";
 import { classificationSystemPrompt, classificationUserPrompt } from "./prompts";
 import { clauseBatchResponseSchema } from "./schemas";
+import { isNonSubstantive, createPrefilteredClause } from "../prefilter";
 
 import { runWithConcurrency } from "../concurrency";
 
@@ -18,11 +19,25 @@ export async function classifyClauses(
   chunks: readonly ClauseChunk[],
   perspective: Perspective,
 ): Promise<Map<string, ClauseAnalysis>> {
-  const batches = toDynamicBatches(chunks);
+  const needsModel: ClauseChunk[] = [];
+  const prefiltered = new Map<string, ClauseAnalysis>();
+
+  for (const chunk of chunks) {
+    if (isNonSubstantive(chunk.text)) {
+      prefiltered.set(chunk.id, createPrefilteredClause(chunk.id));
+    } else {
+      needsModel.push(chunk);
+    }
+  }
+
+  const batches = toDynamicBatches(needsModel);
   const results = await runWithConcurrency(batches, 3, (batch) => classifyBatch(batch, perspective));
 
   // Build a lookup map from the returned analyses
   const lookup = new Map<string, ClauseAnalysis>();
+  for (const [id, analysis] of prefiltered) {
+    lookup.set(id, analysis);
+  }
   for (const batch of results) {
     for (const analysis of batch) {
       lookup.set(analysis.id, analysis);
