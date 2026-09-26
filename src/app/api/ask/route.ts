@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { badRequest, toSafeError, unsupportedMediaType } from "@/lib/errors";
 import { answerQuestion } from "@/lib/gemini/answer-question";
 import { sanitiseDocumentText } from "@/lib/injection-guard";
+import { maskPii } from "@/lib/pii";
 import { clientIpFromHeaders, enforceRateLimit } from "@/lib/rate-limit";
 import { enforceSameOrigin } from "@/lib/origin-guard";
 import { askRequestSchema } from "@/lib/types";
@@ -31,10 +32,10 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     const { question, clauses, perspective } = parsed.data;
     // The question is user input and the clauses are document-derived: sanitise both.
-    const safeQuestion = sanitiseDocumentText(question).text;
+    const safeQuestion = maskPii(sanitiseDocumentText(question).text).text;
     const safeClauses = clauses.map((clause) => ({
       id: clause.id,
-      text: sanitiseDocumentText(clause.text).text,
+      text: maskPii(sanitiseDocumentText(clause.text).text).text,
     }));
 
     const answer = await answerQuestion(safeQuestion, safeClauses, perspective);

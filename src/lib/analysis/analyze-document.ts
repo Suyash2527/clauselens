@@ -4,6 +4,7 @@ import { badRequest } from "../errors";
 import { buildLawyerChecklist } from "../gemini/answer-question";
 import { classifyClauses } from "../gemini/classify-clauses";
 import { sanitiseDocumentText } from "../injection-guard";
+import { maskPii } from "../pii";
 import { severityFor } from "../risk-scoring";
 import type {
   AnalyzedClause,
@@ -48,7 +49,8 @@ export async function analyzeDocument(
   if (cached) return cached;
 
   const { text } = sanitiseDocumentText(rawText);
-  const allChunks = chunkIntoClauses(text);
+  const { text: maskedText } = maskPii(text);
+  const allChunks = chunkIntoClauses(maskedText);
   if (allChunks.length === 0) {
     throw badRequest("No readable clauses were found. Check that the text pasted correctly.");
   }
