@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { DocumentInput, type UploadedFileInfo } from "@/components/DocumentInput";
+import { DemoBanner } from "@/components/DemoBanner";
 import { Disclaimer } from "@/components/Disclaimer";
 import { ResultsView } from "@/components/ResultsView";
 import { RoleSelector } from "@/components/RoleSelector";
@@ -113,8 +114,10 @@ export default function HomePage() {
   }
 
   return (
-    <main className="shell" id="main">
-      <header>
+    <>
+      <DemoBanner />
+      <main className="shell" id="main">
+        <header>
         <p className="label">ClauseLens</p>
         <h1>Understand what you are about to sign.</h1>
         <p style={{ maxWidth: "44rem", color: "var(--ink-soft)" }}>
@@ -192,5 +195,6 @@ export default function HomePage() {
         </div>
       )}
     </main>
+    </>
   );
 }
