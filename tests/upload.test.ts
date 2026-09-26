@@ -28,11 +28,11 @@ function createRequest(formData: FormData, contentLength: number) {
 }
 
 describe("POST /api/extract", () => {
-  it("returns 400 when content-length exceeds 5 MB", async () => {
+  it("returns 413 when content-length exceeds 5 MB", async () => {
     const fd = new FormData();
     const req = createRequest(fd, 6_000_000);
     const res = await POST(req);
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(413);
     const body = await res.json();
     expect(body.error).toContain("too large");
   });

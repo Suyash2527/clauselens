@@ -24,6 +24,18 @@ export function badRequest(message: string): AppError {
   return new AppError(400, message);
 }
 
+export function forbidden(message: string): AppError {
+  return new AppError(403, message);
+}
+
+export function payloadTooLarge(message: string): AppError {
+  return new AppError(413, message);
+}
+
+export function unsupportedMediaType(message: string): AppError {
+  return new AppError(415, message);
+}
+
 /** Signals rate limiting; the message tells the caller when to retry. */
 export function tooManyRequests(message: string): AppError {
   return new AppError(429, message);

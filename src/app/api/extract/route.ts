@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
-import { badRequest, toSafeError } from "@/lib/errors";
+import { badRequest, payloadTooLarge, toSafeError, unsupportedMediaType } from "@/lib/errors";
 import { extractDocxText } from "@/lib/extract/docx";
 import { detectMimeType } from "@/lib/extract/mime";
 import { extractPdfText } from "@/lib/gemini/extract-text";
 import { sanitiseDocumentText } from "@/lib/injection-guard";
 import { clientIpFromHeaders, enforceRateLimit } from "@/lib/rate-limit";
+import { enforceSameOrigin } from "@/lib/origin-guard";
 
 /** Node runtime: extraction needs `Buffer` and mammoth. */
 export const runtime = "nodejs";
@@ -22,18 +23,25 @@ const MIN_PDF_TEXT_CHARS = 200;
  */
 export async function POST(request: Request): Promise<NextResponse> {
   try {
+    enforceSameOrigin(request.headers);
+
+    const contentType = request.headers.get("content-type") || "";
+    if (!contentType.includes("multipart/form-data")) {
+      throw unsupportedMediaType("Expected multipart/form-data.");
+    }
+
     enforceRateLimit(clientIpFromHeaders(request.headers));
 
     // The header can be absent or wrong, so the buffer size is checked again below.
     const contentLength = Number(request.headers.get("content-length") ?? 0);
-    if (contentLength > MAX_BODY_BYTES) throw badRequest(FILE_TOO_LARGE_MESSAGE);
+    if (contentLength > MAX_BODY_BYTES) throw payloadTooLarge(FILE_TOO_LARGE_MESSAGE);
 
     const formData = await request.formData();
     const file = formData.get("file");
     if (!(file instanceof File)) throw badRequest("No file provided.");
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    if (buffer.length > MAX_BODY_BYTES) throw badRequest(FILE_TOO_LARGE_MESSAGE);
+    if (buffer.length > MAX_BODY_BYTES) throw payloadTooLarge(FILE_TOO_LARGE_MESSAGE);
 
     const mime = detectMimeType(buffer);
     let extractedText: string;

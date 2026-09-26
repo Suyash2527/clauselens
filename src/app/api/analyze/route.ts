@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { analyzeDocument } from "@/lib/analysis/analyze-document";
-import { badRequest, toSafeError } from "@/lib/errors";
+import { badRequest, payloadTooLarge, toSafeError, unsupportedMediaType } from "@/lib/errors";
 import { clientIpFromHeaders, enforceRateLimit } from "@/lib/rate-limit";
+import { enforceSameOrigin } from "@/lib/origin-guard";
 import { analyzeRequestSchema } from "@/lib/types";
 
 /** Node runtime: the cache hashes with `node:crypto`. */
@@ -16,11 +17,18 @@ const MAX_BODY_BYTES = 300_000;
  */
 export async function POST(request: Request): Promise<NextResponse> {
   try {
+    enforceSameOrigin(request.headers);
+
+    const contentType = request.headers.get("content-type") || "";
+    if (!contentType.includes("application/json")) {
+      throw unsupportedMediaType("Expected application/json.");
+    }
+
     enforceRateLimit(clientIpFromHeaders(request.headers));
 
     const contentLength = Number(request.headers.get("content-length") ?? 0);
     if (contentLength > MAX_BODY_BYTES) {
-      throw badRequest("Document is too large. Please submit under 120,000 characters.");
+      throw payloadTooLarge("Document is too large. Please submit under 120,000 characters.");
     }
 
     const parsed = analyzeRequestSchema.safeParse(await request.json());

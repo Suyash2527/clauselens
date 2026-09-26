@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
-import { badRequest, toSafeError } from "@/lib/errors";
+import { badRequest, toSafeError, unsupportedMediaType } from "@/lib/errors";
 import { answerQuestion } from "@/lib/gemini/answer-question";
 import { sanitiseDocumentText } from "@/lib/injection-guard";
 import { clientIpFromHeaders, enforceRateLimit } from "@/lib/rate-limit";
+import { enforceSameOrigin } from "@/lib/origin-guard";
 import { askRequestSchema } from "@/lib/types";
 
 /** Node runtime, matching the other routes that share the Gemini client. */
@@ -14,6 +15,13 @@ export const runtime = "nodejs";
  */
 export async function POST(request: Request): Promise<NextResponse> {
   try {
+    enforceSameOrigin(request.headers);
+
+    const contentType = request.headers.get("content-type") || "";
+    if (!contentType.includes("application/json")) {
+      throw unsupportedMediaType("Expected application/json.");
+    }
+
     enforceRateLimit(clientIpFromHeaders(request.headers));
 
     const parsed = askRequestSchema.safeParse(await request.json());
