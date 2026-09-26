@@ -1,5 +1,7 @@
 # ClauseLens
 
+**[Live Demo](https://clauselens-320835628255.asia-south1.run.app)**
+
 Legal documents are dense, complex, and difficult to navigate without professional help. ClauseLens is an AI-powered assistant that makes contracts accessible by explaining them in plain English.
 
 ClauseLens directly addresses the challenge of making legal documents more approachable by:

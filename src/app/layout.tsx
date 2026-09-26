@@ -12,6 +12,8 @@ export const metadata: Metadata = {
  * Root shell. The demo-mode banner is rendered on the server, where the key is
  * visible, so the browser only learns whether a key exists, never its value.
  */
+export const dynamic = "force-dynamic";
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">

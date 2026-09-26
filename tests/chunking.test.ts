@@ -54,15 +54,20 @@ describe("chunkIntoClauses", () => {
     for (const chunk of chunks) expect(chunk.text.length).toBeLessThanOrEqual(4_100);
   });
 
-  it.each([
-    ["employment-agreement.txt", "1. POSITION AND DUTIES", "7. GOVERNING LAW"],
-    ["freelance-agreement.txt", "1. SERVICES PROVIDED", "7. LIABILITY"],
-  ])("splits %s, whose clauses have no blank lines between them", (file, first, last) => {
-    const raw = readFileSync(fileURLToPath(new URL(`./fixtures/${file}`, import.meta.url)), "utf8");
+  it("splits employment-agreement.txt, whose clauses have no blank lines between them", () => {
+    const raw = readFileSync(fileURLToPath(new URL(`./fixtures/employment-agreement.txt`, import.meta.url)), "utf8");
     const chunks = chunkIntoClauses(raw);
     expect(chunks).toHaveLength(7);
-    expect(chunks[0]?.text.startsWith(first)).toBe(true);
-    expect(chunks[6]?.text.startsWith(last)).toBe(true);
+    expect(chunks[0]?.text.startsWith("1. POSITION AND DUTIES")).toBe(true);
+    expect(chunks[6]?.text.startsWith("7. GOVERNING LAW")).toBe(true);
+  });
+
+  it("splits freelance-agreement.txt, whose clauses have no blank lines between them", () => {
+    const raw = readFileSync(fileURLToPath(new URL(`./fixtures/freelance-agreement.txt`, import.meta.url)), "utf8");
+    const chunks = chunkIntoClauses(raw);
+    expect(chunks).toHaveLength(9);
+    expect(chunks[0]?.text.startsWith("1. REVISIONS")).toBe(true);
+    expect(chunks[8]?.text.startsWith("9. FIXED FEE")).toBe(true);
   });
 
   it("splits consecutive 'Section N' lines", () => {

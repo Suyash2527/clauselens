@@ -1,3 +1,6 @@
+import * as fs from "fs";
+
+const text = `
 FREELANCE CONTRACTOR AGREEMENT
 
 1. REVISIONS: The Contractor agrees to provide unlimited free revisions to the work until the Client is completely satisfied, without any additional compensation.
@@ -7,5 +10,7 @@ FREELANCE CONTRACTOR AGREEMENT
 5. EXCLUSIVITY: For a period of 12 months following the termination of this agreement, the Contractor shall not provide similar services to any other client operating in the same sector.
 6. INDEMNITY: The Contractor shall indemnify and hold the Client harmless from any and all claims, damages, liabilities, and expenses arising out of the Contractor's performance of the work, without any cap on liability.
 7. TERMINATION: The Client may terminate this agreement at any time for any reason. In the event of early termination, no payment shall be made for any partial work completed by the Contractor.
-8. CONFIDENTIALITY: Both parties agree to maintain the terms of this agreement and any proprietary information shared in strict confidence in perpetuity.
-9. FIXED FEE: The Client shall pay the Contractor a non-refundable fixed fee of $10,000 for the project, regardless of actual hours worked.
+`;
+
+fs.writeFileSync("d:/promptwars/vip_version/tests/fixtures/freelance-agreement.txt", text);
+console.log("Written test file.");

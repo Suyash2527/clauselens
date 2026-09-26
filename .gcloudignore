@@ -1,0 +1,7 @@
+.gcloudignore
+.git
+.gitignore
+node_modules/
+.next/
+.claude/
+scratch/
