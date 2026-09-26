@@ -16,6 +16,35 @@ interface Props {
   onConfirmUpload: (file: File) => void;
 }
 
+const SAMPLE_TEXT = `RENTAL AGREEMENT
+
+This Rental Agreement is made on this 1st day of January 2026, between Mr. Sharma (hereinafter referred to as "Landlord") and Mr. Patel (hereinafter referred to as "Tenant").
+
+Section 1. RENT: The Tenant shall pay a monthly rent of Rs. 25,000 to the Landlord on or before the 5th of every month.
+
+Section 2. SECURITY DEPOSIT: The Tenant shall pay an interest-free security deposit of Rs. 1,00,000, which will be refunded at the time of vacating the premises, subject to deductions for damages or unpaid dues.
+
+Section 3. MAINTENANCE: The Tenant shall bear the monthly maintenance charges of the society. Any major structural repairs shall be the responsibility of the Landlord, while minor electrical or plumbing repairs up to Rs. 1,000 shall be borne by the Tenant.
+
+Section 4. LOCK-IN PERIOD: Both parties agree to a lock-in period of 6 months. If the Tenant vacates before 6 months, the Tenant must pay rent for the remainder of the lock-in period.
+
+Section 5. NOTICE PERIOD: After the lock-in period, either party may terminate this agreement by giving two (2) months' written notice. 
+
+Section 6. LATE PAYMENT PENALTY: A penalty of Rs. 500 per day will be levied for any delay in rent payment beyond the 5th of the month. 
+
+Section 7. SUBLETTING: The Tenant shall not sublet, assign, or part with the possession of the premises, wholly or partly, to any third party under any circumstances.
+
+Section 8. TERMINATION: The Landlord reserves the right to terminate this agreement immediately and evict the Tenant if the rent is not paid for two consecutive months or if the premises are used for any illegal activities.
+
+Section 9. FORFEITURE OF DEPOSIT: If the Tenant breaches any terms of this agreement, the Landlord shall have the right to forfeit the entire security deposit.
+
+Section 10. RENEWAL: This agreement is valid for 11 months. It may be renewed by mutual consent with a 10% escalation in the monthly rent.
+
+Section 11. INDEMNITY: The Tenant agrees to indemnify and hold the Landlord harmless against any claims, damages, or liabilities arising out of the Tenant's use of the property.
+
+Section 12. INSPECTION: The Landlord shall have the right to enter and inspect the premises at reasonable hours with 24 hours prior notice to the Tenant.
+`;
+
 export function DocumentInput({
   text,
   setText,
@@ -84,6 +113,18 @@ export function DocumentInput({
             {extractedFile.name} ({Math.round(extractedFile.size / 1024)} KB)
           </span>
         )}
+      </div>
+
+      <div style={{ marginTop: "1.5rem" }}>
+        <button
+          className="button button--secondary"
+          type="button"
+          onClick={() => setText(SAMPLE_TEXT)}
+          disabled={pending || extracting}
+          suppressHydrationWarning
+        >
+          Try a sample document
+        </button>
       </div>
 
       <div role="status" aria-live="polite" style={{ marginTop: "1rem" }}>

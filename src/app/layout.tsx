@@ -22,6 +22,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <a className="skip-link" href="#main">
           Skip to main content
         </a>
+        {!process.env.GEMINI_API_KEY && (
+          <div style={{ background: "var(--amber)", color: "#000", padding: "0.5rem", textAlign: "center", fontWeight: 500, fontSize: "0.9rem" }}>
+            Demo mode — showing sample analysis. Add a Gemini API key for live results.
+          </div>
+        )}
         {children}
       </body>
     </html>

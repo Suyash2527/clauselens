@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { getDemoClient } from "./demo-provider";
 
 /**
  * Single place where the Gemini client is constructed. Nothing outside this
@@ -11,7 +12,9 @@ export function getGenAI(): GoogleGenAI {
   if (cached) return cached;
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    throw new Error("GEMINI_API_KEY is not configured on the server.");
+    console.warn("DEMO MODE ON: GEMINI_API_KEY is absent. Using deterministic fixture responses.");
+    cached = getDemoClient();
+    return cached;
   }
   cached = new GoogleGenAI({ apiKey });
   return cached;

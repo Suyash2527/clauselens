@@ -61,7 +61,7 @@ SHA-256 hash rather than the text itself. Closing the page discards everything.
 
 `next.config.ts` sets `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`,
 `Referrer-Policy: strict-origin-when-cross-origin`, and a `Permissions-Policy` denying camera,
-microphone, and geolocation. `poweredByHeader` is disabled.
+microphone, and geolocation. `Strict-Transport-Security` enforces HTTPS for one year including subdomains, `Cross-Origin-Opener-Policy` isolates the window, and a `Content-Security-Policy-Report-Only` sets a strict baseline. `poweredByHeader` is disabled.
 
 ## Known limitations
 
