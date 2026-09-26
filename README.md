@@ -71,7 +71,7 @@ ask                follow-up Q&A grounded in the clauses, with clause citations
 ### Code Quality
 - TypeScript `strict` with zero `any` usage.
 - Business logic is isolated in `src/lib/` without React imports. Route handlers delegate all work.
-- Configurable models: `src/lib/gemini/client.ts` routes classification and synthesis to `gemini-1.5-flash`.
+- Configurable models: `src/lib/gemini/client.ts` routes classification to `gemini-2.5-flash-lite` and synthesis to `gemini-2.5-flash`.
 
 ### Security
 - The `GEMINI_API_KEY` never leaves the server (`src/lib/gemini/client.ts`).

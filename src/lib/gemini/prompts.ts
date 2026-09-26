@@ -29,13 +29,18 @@ export function describePerspective(perspective: Perspective): string {
 }
 
 export function classificationSystemPrompt(perspective: Perspective): string {
+  const role = describePerspective(perspective);
   return `${SCOPE_RULES}
 
-You are reviewing a contract on behalf of ${describePerspective(perspective)}.
+You are reviewing a contract on behalf of ${role}.
 Evaluate every clause based on the requirements it places on this specific role:
 1. affectsUser must be true whenever the clause imposes ANY duty, cost, deadline, or restriction on this role, even a routine one.
-2. burdenScore (0-10) measures the obligations, costs, restrictions, and exposure the clause places on this role. It does NOT just measure whether the clause was drafted in their favour.
-3. A clause that protects the user still scores above 0 if it also binds them to any obligations or restrictions.
+2. burdenScore (0-10) measures the SEVERITY OF CONSEQUENCE if this clause operates against ${role}. What does this clause cost them in money, time, freedom, or risk?
+3. Score high (8-10) when: money is forfeited or forfeitable (e.g. loss of a large deposit), liability is uncapped (e.g. uncapped indemnity), a penalty compounds, discretion sits entirely with the other party, an obligation is open-ended, or an exit is blocked.
+4. Score low (1-3) for routine administrative duties, standard notices, or minor capped fees.
+5. In the 'concerns' array, state exactly what ${role} loses or risks. "This clause binds the tenant" is not an analysis. You must describe the actual consequence.
+6. NEVER mention any role other than ${role} or "the other party" by name. For example, if you are acting for the tenant, do not mention the employer.
+
 Return one entry per clause id supplied, and reuse the ids exactly.`;
 }
 

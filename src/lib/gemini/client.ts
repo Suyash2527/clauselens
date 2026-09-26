@@ -22,9 +22,9 @@ export function getGenAI(): GoogleGenAI {
 
 export const MODELS = {
   /** High-throughput pass used for per-clause classification. */
-  fast: process.env.GEMINI_FAST_MODEL ?? "gemini-1.5-flash",
+  fast: process.env.GEMINI_FAST_MODEL ?? "gemini-2.5-flash-lite",
   /** Used for synthesis and document-grounded question answering. */
-  deep: process.env.GEMINI_DEEP_MODEL ?? "gemini-1.5-flash",
+  deep: process.env.GEMINI_DEEP_MODEL ?? "gemini-2.5-flash",
 } as const;
 
 /** Test seam — drops the memoised client so env changes take effect. */

@@ -28,8 +28,9 @@ export function chunkIntoClauses(rawText: string): ClauseChunk[] {
 
   const chunks: ClauseChunk[] = [];
   for (const block of merged) {
+    if (block.text.trim().length < MIN_CLAUSE_CHARS) continue;
     for (const piece of enforceMaxLength(block)) {
-      if (piece.text.trim().length < MIN_CLAUSE_CHARS) continue;
+      if (piece.text.trim().length === 0) continue;
       chunks.push({
         id: `c${chunks.length + 1}`,
         index: chunks.length + 1,
