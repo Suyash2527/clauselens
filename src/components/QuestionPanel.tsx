@@ -38,7 +38,7 @@ export function QuestionPanel({ clauses, perspective }: QuestionPanelProps) {
         body: JSON.stringify({
           question,
           perspective,
-          clauses: clauses.map((c) => ({ id: c.id, index: c.index, text: c.text })),
+          clauses: clauses.map((c) => ({ id: c.id, index: c.index, text: c.text.slice(0, 8000) })),
         }),
       });
       const body: unknown = await response.json();

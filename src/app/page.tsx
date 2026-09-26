@@ -92,7 +92,7 @@ export default function HomePage() {
       const response = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, perspective }),
+        body: JSON.stringify({ text: text.slice(0, 120_000), perspective }),
       });
       const body: unknown = await response.json();
       if (!response.ok) {
