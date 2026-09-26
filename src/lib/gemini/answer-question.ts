@@ -1,13 +1,7 @@
-import { z } from "zod";
 import { askAnswerSchema, type AskAnswer, type Perspective } from "../types";
 import { generateStructured, MODELS } from "./client";
-import { askSystemPrompt, askUserPrompt, checklistSystemPrompt, checklistUserPrompt } from "./prompts";
-import { askResponseSchema, checklistResponseSchema } from "./schemas";
-
-/** The prompt asks for three to seven; the cap holds even if the model overshoots. */
-const MAX_CHECKLIST_QUESTIONS = 7;
-
-const checklistSchema = z.object({ questions: z.array(z.string()) });
+import { askSystemPrompt, askUserPrompt } from "./prompts";
+import { askResponseSchema } from "./schemas";
 
 /**
  * Answers a free-form question using only the supplied clauses. The caller is
@@ -29,29 +23,3 @@ export async function answerQuestion(
   });
 }
 
-/**
- * Turns the concerns found during analysis into questions for a real lawyer.
- * The checklist is supplementary, so any failure yields an empty list rather
- * than failing the analysis it accompanies.
- */
-export async function buildLawyerChecklist(
-  concerns: readonly string[],
-  perspective: Perspective,
-): Promise<string[]> {
-  if (concerns.length === 0) return [];
-  try {
-    const { questions } = await generateStructured({
-      logLabel: "gemini.checklist",
-      model: MODELS.deep,
-      contents: checklistUserPrompt(concerns),
-      systemInstruction: checklistSystemPrompt(perspective),
-      responseSchema: checklistResponseSchema,
-      validator: checklistSchema,
-      temperature: 0.4,
-    });
-    return questions.slice(0, MAX_CHECKLIST_QUESTIONS);
-  } catch {
-    // Already logged by generateStructured.
-    return [];
-  }
-}

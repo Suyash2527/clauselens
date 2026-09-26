@@ -1,7 +1,6 @@
 import { cacheKey, TtlCache } from "../cache";
 import { chunkIntoClauses } from "../chunking";
 import { badRequest } from "../errors";
-import { buildLawyerChecklist } from "../gemini/answer-question";
 import { classifyClauses } from "../gemini/classify-clauses";
 import { sanitiseDocumentText } from "../injection-guard";
 import { maskPii } from "../pii";
@@ -16,8 +15,19 @@ import type {
 
 /** Bounds cost and latency; the UI tells the user when a document was cut short. */
 const MAX_CLAUSES = 60;
-/** Keeps the checklist prompt focused on the worst clauses rather than every concern. */
-const MAX_CHECKLIST_CONCERNS = 12;
+
+const MAX_CHECKLIST = 10;
+/** Builds the lawyer checklist locally from per-clause questions: no extra model call. */
+export function buildChecklistFromClauses(clauses: readonly AnalyzedClause[]): string[] {
+  const rank = { high: 3, medium: 2, low: 1 } as const;
+  const seen = new Set<string>();
+  return [...clauses]
+    .filter((c) => c.analysis.questionForLawyer)
+    .sort((a, b) => rank[b.severity] - rank[a.severity] || b.analysis.burdenScore - a.analysis.burdenScore)
+    .map((c) => c.analysis.questionForLawyer!.trim())
+    .filter((q) => { const k = q.toLowerCase().replace(/\s+/g, " "); if (seen.has(k)) return false; seen.add(k); return true; })
+    .slice(0, MAX_CHECKLIST);
+}
 
 const analysisCache = new TtlCache<DocumentAnalysis>();
 
@@ -27,12 +37,10 @@ const analysisCache = new TtlCache<DocumentAnalysis>();
  */
 export interface AnalyzeDeps {
   classify: typeof classifyClauses;
-  checklist: typeof buildLawyerChecklist;
 }
 
 const defaultDeps: AnalyzeDeps = {
   classify: classifyClauses,
-  checklist: buildLawyerChecklist,
 };
 
 /**
@@ -64,8 +72,7 @@ export async function analyzeDocument(
     .filter((clause) => clause.severity === "high")
     .sort((a, b) => b.analysis.burdenScore - a.analysis.burdenScore);
 
-  const concerns = redFlags.flatMap((clause) => clause.analysis.concerns).slice(0, MAX_CHECKLIST_CONCERNS);
-  const lawyerChecklist = await deps.checklist(concerns, perspective);
+  const lawyerChecklist = buildChecklistFromClauses(clauses);
 
   const result: DocumentAnalysis = { perspective, clauses, redFlags, lawyerChecklist, truncated };
   analysisCache.set(key, result);

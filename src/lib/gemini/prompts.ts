@@ -54,6 +54,7 @@ Evaluate every clause based on the requirements it places on this specific role:
    - Name the counterparty in plain words as "${counterparty}". NEVER write "the other party", and NEVER repeat the phrase "${role}".
    - For 'concerns', state exactly what the user loses or risks. You must describe the actual consequence.
 6. NEVER mention any role other than "you", "your", or "${counterparty}". For example, if you are acting for the tenant, do not mention the employer.
+7. For any clause with burdenScore >= 6, set questionForLawyer to one specific, practical question the user should ask a lawyer about that clause (max 200 characters). Otherwise set it to null.
 
 Return one entry per clause id supplied, and reuse the ids exactly.`;
 }
@@ -82,19 +83,6 @@ export function askUserPrompt(
   return `Question: ${question}\n\n${fenceDocument(formatClausesWithIds(clauses))}`;
 }
 
-/** Keeps questions short and specific so they fit a single paid consultation. */
-export function checklistSystemPrompt(perspective: Perspective): string {
-  return `${SCOPE_RULES}
-
-Write questions that ${PERSPECTIVE_LABELS[perspective]} should ask a qualified lawyer about this document.
-Each question must be specific to the concerns listed, answerable in a short consultation, and free of jargon.
-Return between three and seven questions.`;
-}
-
-/** Concerns are model-written summaries, not raw document text, so they are not fenced. */
-export function checklistUserPrompt(concerns: readonly string[]): string {
-  return `Concerns found in the document:\n${concerns.map((concern) => `- ${concern}`).join("\n")}`;
-}
 
 /**
  * Transcription must be verbatim: the chunker relies on the original clause

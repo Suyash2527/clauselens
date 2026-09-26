@@ -63,14 +63,6 @@ export const askResponseSchema = {
   required: ["answer", "citedClauseIds", "answerable"],
 } as const;
 
-/** Lawyer checklist reply: a flat list of questions. */
-export const checklistResponseSchema = {
-  type: Type.OBJECT,
-  properties: {
-    questions: { type: Type.ARRAY, items: { type: Type.STRING } },
-  },
-  required: ["questions"],
-} as const;
 
 /** PDF transcription reply: the full document text in a single field. */
 export const extractTextResponseSchema = {

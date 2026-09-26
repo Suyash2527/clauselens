@@ -24,14 +24,7 @@ export function getDemoClient(): GoogleGenAI {
             citedClauseIds: [],
             answerable: true,
           });
-        } else if (schema?.properties?.questions) {
-          rawJson = JSON.stringify({
-            questions: [
-              "Are there hidden penalties in this sample document?",
-              "What is the exact process for early termination?",
-              "Who is liable if the property is damaged by a third party?",
-            ],
-          });
+
         } else if (schema?.properties?.text) {
           rawJson = JSON.stringify({
             text: "This is sample extracted text from a demo document. In a real environment, Gemini would parse the actual PDF.",
@@ -54,8 +47,8 @@ function demoClauses(prompt: string) {
     category: CLAUSE_CATEGORIES[index % CLAUSE_CATEGORIES.length],
     plainSummary: "This is a deterministic sample summary for demo mode. It explains the clause simply.",
     affectsUser: true,
-    burdenScore: 5,
-    concerns: index % 2 === 0 ? ["Sample risk identified in demo mode"] : [],
+    burdenScore: index % 3 === 0 ? 8 : 2,
+    concerns: index % 3 === 0 ? ["Sample risk identified in demo mode"] : [],
     questionForLawyer: index % 3 === 0 ? "What are the exact terms?" : null,
   }));
 }
