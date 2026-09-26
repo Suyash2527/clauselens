@@ -1,20 +1,17 @@
 "use client";
 
 import { useId, useState } from "react";
-import type { AnalyzedClause } from "@/lib/types";
+import type { AnalyzedClause, ClauseCategory } from "@/lib/types";
 import { RiskBadge } from "./RiskBadge";
 
-const CATEGORY_LABELS: Record<string, string> = {
-  auto_renewal: "auto renewal",
-  dispute_resolution: "dispute resolution",
-  intellectual_property: "intellectual property",
-  non_compete: "non compete",
-};
-
-function readableCategory(category: string): string {
-  return CATEGORY_LABELS[category] ?? category.replace(/_/g, " ");
+function readableCategory(category: ClauseCategory): string {
+  return category.replace(/_/g, " ");
 }
 
+/**
+ * One analysed clause. The plain-language summary leads; the original wording
+ * is one click away so the user can check the summary against the source.
+ */
 export function ClauseCard({ clause }: { clause: AnalyzedClause }) {
   const [showSource, setShowSource] = useState(false);
   const sourceId = useId();

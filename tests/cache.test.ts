@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { TtlCache, cacheKey } from "@/lib/cache";
 
 describe("TtlCache", () => {
-  it("returns a stored value", () => {
+  it("returns a value that was set and has not expired", () => {
     const cache = new TtlCache<string>();
     cache.set("a", "value");
     expect(cache.get("a")).toBe("value");
@@ -12,7 +12,7 @@ describe("TtlCache", () => {
     expect(new TtlCache<string>().get("missing")).toBeUndefined();
   });
 
-  it("expires entries after the TTL", () => {
+  it("returns undefined once an entry's TTL has passed", () => {
     vi.useFakeTimers();
     const cache = new TtlCache<string>(1_000);
     cache.set("a", "value");
@@ -33,15 +33,15 @@ describe("TtlCache", () => {
 });
 
 describe("cacheKey", () => {
-  it("is stable for identical input", () => {
+  it("produces the same key for identical input", () => {
     expect(cacheKey("tenant", "text")).toBe(cacheKey("tenant", "text"));
   });
 
-  it("differs when the perspective changes", () => {
+  it("produces a different key when the perspective changes", () => {
     expect(cacheKey("tenant", "text")).not.toBe(cacheKey("landlord", "text"));
   });
 
-  it("does not leak the source text into the key", () => {
+  it("hashes the source text instead of embedding it in the key", () => {
     expect(cacheKey("tenant", "secret clause")).not.toContain("secret");
   });
 });

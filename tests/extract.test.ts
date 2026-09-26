@@ -1,6 +1,6 @@
-import { describe, it, expect, vi } from "vitest";
-import { extractDocxText } from "../src/lib/extract/docx";
 import mammoth from "mammoth";
+import { describe, expect, it, vi } from "vitest";
+import { extractDocxText } from "@/lib/extract/docx";
 
 vi.mock("mammoth", () => ({
   default: {
@@ -20,7 +20,7 @@ describe("extractDocxText", () => {
     expect(mammoth.extractRawText).toHaveBeenCalledWith({ buffer: Buffer.from("dummy") });
   });
 
-  it("handles empty document correctly", async () => {
+  it("returns an empty string for a whitespace-only document", async () => {
     vi.mocked(mammoth.extractRawText).mockResolvedValue({
       value: "   ",
       messages: [],
@@ -30,7 +30,7 @@ describe("extractDocxText", () => {
     expect(result).toBe("");
   });
 
-  it("throws when mammoth fails (corrupt file)", async () => {
+  it("propagates the parser error for a corrupt file", async () => {
     vi.mocked(mammoth.extractRawText).mockRejectedValue(new Error("Corrupt docx"));
 
     await expect(extractDocxText(Buffer.from("bad"))).rejects.toThrow("Corrupt docx");

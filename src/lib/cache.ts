@@ -1,5 +1,13 @@
 import { createHash } from "node:crypto";
 
+const DEFAULT_TTL_MS = 15 * 60 * 1_000;
+const DEFAULT_MAX_ENTRIES = 50;
+
+interface CacheEntry<T> {
+  value: T;
+  expiresAt: number;
+}
+
 /**
  * Small in-process LRU with TTL. Re-analysing an identical document and
  * perspective is the most common repeat request (users tweak the question, not
@@ -8,16 +16,8 @@ import { createHash } from "node:crypto";
  * Deliberately in-memory: a single-instance deployment needs nothing more, and
  * document text never reaches external storage.
  */
-const DEFAULT_TTL_MS = 15 * 60 * 1_000;
-const DEFAULT_MAX_ENTRIES = 50;
-
-interface Entry<T> {
-  value: T;
-  expiresAt: number;
-}
-
 export class TtlCache<T> {
-  private readonly store = new Map<string, Entry<T>>();
+  private readonly store = new Map<string, CacheEntry<T>>();
 
   constructor(
     private readonly ttlMs: number = DEFAULT_TTL_MS,
@@ -31,7 +31,7 @@ export class TtlCache<T> {
       this.store.delete(key);
       return undefined;
     }
-    // Refresh recency for LRU eviction.
+    // Map preserves insertion order, so re-inserting marks the entry most recent.
     this.store.delete(key);
     this.store.set(key, entry);
     return entry.value;
@@ -43,10 +43,6 @@ export class TtlCache<T> {
       if (!oldest.done) this.store.delete(oldest.value);
     }
     this.store.set(key, { value, expiresAt: Date.now() + this.ttlMs });
-  }
-
-  get size(): number {
-    return this.store.size;
   }
 }
 

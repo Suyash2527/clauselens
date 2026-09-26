@@ -1,12 +1,17 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
+/** Page title and description used by browsers and link previews. */
 export const metadata: Metadata = {
   title: "ClauseLens — understand what you are about to sign",
   description:
     "Clause-by-clause plain-language explanations of rental, employment and freelance agreements, scored from your side of the deal.",
 };
 
+/**
+ * Root shell. The demo-mode banner is rendered on the server, where the key is
+ * visible, so the browser only learns whether a key exists, never its value.
+ */
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">

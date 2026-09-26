@@ -1,12 +1,14 @@
 import { Type } from "@google/genai";
 import { CLAUSE_CATEGORIES } from "../types";
 
-/**
+/*
  * Response schemas passed to Gemini as `responseSchema`. Constraining the model
  * to JSON at the API level removes the whole class of brittle string parsing
- * and means a malformed reply fails fast rather than silently degrading.
+ * and means a malformed reply fails fast rather than silently degrading. Each
+ * one mirrors a Zod schema that re-validates the reply locally.
  */
 
+/** Batch classification reply; mirrors `clauseAnalysisSchema` per item. */
 export const clauseBatchResponseSchema = {
   type: Type.OBJECT,
   properties: {
@@ -47,6 +49,7 @@ export const clauseBatchResponseSchema = {
   required: ["clauses"],
 } as const;
 
+/** Grounded Q&A reply; mirrors `askAnswerSchema`. */
 export const askResponseSchema = {
   type: Type.OBJECT,
   properties: {
@@ -60,6 +63,7 @@ export const askResponseSchema = {
   required: ["answer", "citedClauseIds", "answerable"],
 } as const;
 
+/** Lawyer checklist reply: a flat list of questions. */
 export const checklistResponseSchema = {
   type: Type.OBJECT,
   properties: {
@@ -68,6 +72,7 @@ export const checklistResponseSchema = {
   required: ["questions"],
 } as const;
 
+/** PDF transcription reply: the full document text in a single field. */
 export const extractTextResponseSchema = {
   type: Type.OBJECT,
   properties: {

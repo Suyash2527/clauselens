@@ -1,15 +1,20 @@
 import { NextResponse } from "next/server";
-import { askRequestSchema } from "@/lib/types";
+import { badRequest, toSafeError } from "@/lib/errors";
 import { answerQuestion } from "@/lib/gemini/answer-question";
 import { sanitiseDocumentText } from "@/lib/injection-guard";
-import { clientKey, enforceRateLimit } from "@/lib/rate-limit";
-import { badRequest, toSafeError } from "@/lib/errors";
+import { clientIpFromHeaders, enforceRateLimit } from "@/lib/rate-limit";
+import { askRequestSchema } from "@/lib/types";
 
+/** Node runtime, matching the other routes that share the Gemini client. */
 export const runtime = "nodejs";
 
+/**
+ * Answers a question about an already-analysed document. The client resends
+ * the clauses, so the server holds no per-user state between requests.
+ */
 export async function POST(request: Request): Promise<NextResponse> {
   try {
-    enforceRateLimit(clientKey(request.headers));
+    enforceRateLimit(clientIpFromHeaders(request.headers));
 
     const parsed = askRequestSchema.safeParse(await request.json());
     if (!parsed.success) {

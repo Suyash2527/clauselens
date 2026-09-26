@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { scoreClause, severityFor, weightFor } from "@/lib/risk-scoring";
-import type { ClauseAnalysis } from "@/lib/types";
+import { CLAUSE_CATEGORIES, PERSPECTIVES, type ClauseAnalysis } from "@/lib/types";
 
 function analysis(overrides: Partial<ClauseAnalysis> = {}): ClauseAnalysis {
   return {
@@ -30,7 +30,7 @@ describe("weightFor", () => {
 });
 
 describe("scoreClause", () => {
-  it("produces the same clause a higher score for the burdened party", () => {
+  it("gives the same clause a higher score for the burdened party", () => {
     const clause = analysis();
     expect(scoreClause(clause, "freelancer")).toBeGreaterThan(scoreClause(clause, "client"));
   });
@@ -47,7 +47,7 @@ describe("scoreClause", () => {
   });
 
   it("keeps clauses that do not affect the user below the medium threshold", () => {
-    expect(scoreClause(analysis({ affectsUser: false, burdenScore: 9 }), "freelancer")).toBeLessThan(5);
+    expect(scoreClause(analysis({ affectsUser: false, burdenScore: 9 }), "freelancer")).toBeLessThan(4);
   });
 });
 
@@ -68,13 +68,28 @@ describe("severityFor", () => {
     expect(severityFor(analysis({ category: "obligation", burdenScore: 9 }), "landlord")).toBe("high");
   });
 
-  it("distinguishes burdened vs protected parties at high burden scores", () => {
-    // A highly burdensome indemnity (burdenScore 8) with concerns
-    const highRiskClause = analysis({ category: "indemnity", burdenScore: 8, concerns: ["No cap on liability"] });
-    // The burdened party (freelancer) should land in 'high' severity
-    expect(severityFor(highRiskClause, "freelancer")).toBe("high");
-    // The protected party (client) should NOT land in 'high' severity
-    expect(severityFor(highRiskClause, "client")).not.toBe("high");
+  it("distinguishes burdened vs protected parties when the model scores each side", () => {
+    // The model rates the same indemnity heavy for the freelancer and light for the client it protects.
+    const concerns = ["No cap on liability"];
+    expect(severityFor(analysis({ burdenScore: 8, concerns }), "freelancer")).toBe("high");
+    expect(severityFor(analysis({ burdenScore: 3, concerns }), "client")).toBe("low");
+  });
+
+  it("keeps the protective discount on low-burden clauses", () => {
+    expect(severityFor(analysis({ category: "indemnity", burdenScore: 3 }), "client")).toBe("low");
+  });
+
+  it("drops the protective discount when a clause cuts against the protected party", () => {
+    // Deposit forfeiture with interest owed by the landlord: the penalty runs against him.
+    const penalty = analysis({ category: "penalty", burdenScore: 9, concerns: ["interest on late refund"] });
+    expect(severityFor(penalty, "landlord")).toBe("high");
+  });
+
+  it("fades protective weights toward neutral as burden rises, never past it", () => {
+    expect(weightFor("client", "indemnity", 3)).toBeCloseTo(weightFor("client", "indemnity"));
+    expect(weightFor("client", "indemnity", 7)).toBeGreaterThan(weightFor("client", "indemnity", 3));
+    expect(weightFor("client", "indemnity", 10)).toBeCloseTo(1.2);
+    expect(weightFor("freelancer", "indemnity", 10)).toBe(weightFor("freelancer", "indemnity", 0));
   });
 
   it("allows a protected party to reach high severity at extreme burden", () => {
@@ -86,5 +101,14 @@ describe("severityFor", () => {
     });
     // Even as the protected party (client), the math must allow it to reach High
     expect(severityFor(extremeClause, "client")).toBe("high");
+  });
+
+  it("lets every perspective reach high on every category at extreme burden, so no weight imposes a ceiling", () => {
+    const extreme = { burdenScore: 10, concerns: ["a", "b", "c"] };
+    for (const perspective of PERSPECTIVES) {
+      for (const category of CLAUSE_CATEGORIES) {
+        expect(severityFor(analysis({ ...extreme, category }), perspective), `${perspective}/${category}`).toBe("high");
+      }
+    }
   });
 });

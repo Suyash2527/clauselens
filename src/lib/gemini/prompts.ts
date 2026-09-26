@@ -1,5 +1,5 @@
-import type { Perspective } from "../types";
 import { fenceDocument } from "../injection-guard";
+import type { Perspective } from "../types";
 
 /**
  * Every system instruction restates the scope limit from the brief: this tool
@@ -24,10 +24,6 @@ const PERSPECTIVE_LABELS: Record<Perspective, string> = {
   client: "the client paying for the services",
 };
 
-export function describePerspective(perspective: Perspective): string {
-  return PERSPECTIVE_LABELS[perspective];
-}
-
 const COUNTERPARTIES: Record<Perspective, string> = {
   tenant: "the landlord",
   landlord: "the tenant",
@@ -37,53 +33,83 @@ const COUNTERPARTIES: Record<Perspective, string> = {
   client: "the freelancer",
 };
 
+/**
+ * The model is told the exact counterparty name so summaries read "the
+ * landlord can…" rather than a vague "the other party", and so it cannot drift
+ * into roles that do not exist in this agreement.
+ */
 export function classificationSystemPrompt(perspective: Perspective): string {
-  const role = describePerspective(perspective);
+  const role = PERSPECTIVE_LABELS[perspective];
   const counterparty = COUNTERPARTIES[perspective];
   return `${SCOPE_RULES}
 
 You are reviewing a contract on behalf of ${role}.
 Evaluate every clause based on the requirements it places on this specific role:
 1. affectsUser must be true whenever the clause imposes ANY duty, cost, deadline, or restriction on this role, even a routine one.
-2. burdenScore (0-10) measures the SEVERITY OF CONSEQUENCE if this clause operates against ${role}. What does this clause cost them in money, time, freedom, or risk?
-3. Score high (8-10) when: money is forfeited or forfeitable (e.g. loss of a large deposit), liability is uncapped (e.g. uncapped indemnity), a penalty compounds, discretion sits entirely with the other party, an obligation is open-ended, or an exit is blocked.
+2. burdenScore (0-10) measures the SEVERITY OF CONSEQUENCE if this clause operates against you. What does this clause cost you in money, time, freedom, or risk?
+3. Score high (8-10) when: money is forfeited or forfeitable (e.g. loss of a large deposit), liability is uncapped (e.g. uncapped indemnity), a penalty compounds, discretion sits entirely with ${counterparty}, an obligation is open-ended, or an exit is blocked.
 4. Score low (1-3) for routine administrative duties, standard notices, or minor capped fees.
 5. In both 'plainSummary' and 'concerns':
    - Address the user directly as "you" and "your".
-   - Name the counterparty in plain words as "${counterparty}". NEVER use "the other party" or the full role description.
+   - Name the counterparty in plain words as "${counterparty}". NEVER write "the other party", and NEVER repeat the phrase "${role}".
    - For 'concerns', state exactly what the user loses or risks. You must describe the actual consequence.
 6. NEVER mention any role other than "you", "your", or "${counterparty}". For example, if you are acting for the tenant, do not mention the employer.
 
 Return one entry per clause id supplied, and reuse the ids exactly.`;
 }
 
+/** Labels each clause with its id so the model can echo ids back verbatim. */
 export function classificationUserPrompt(
   clauses: ReadonlyArray<{ id: string; text: string }>,
 ): string {
-  const body = clauses.map((c) => `[${c.id}]\n${c.text}`).join("\n\n");
-  return `Analyse each numbered clause below.\n\n${fenceDocument(body)}`;
+  return `Analyse each numbered clause below.\n\n${fenceDocument(formatClausesWithIds(clauses))}`;
 }
 
+/** Restricts answers to the supplied clauses so every claim can be cited. */
 export function askSystemPrompt(perspective: Perspective): string {
   return `${SCOPE_RULES}
 
-You answer questions about a specific document on behalf of ${describePerspective(perspective)}.
+You answer questions about a specific document on behalf of ${PERSPECTIVE_LABELS[perspective]}.
 Answer only from the clauses supplied. Cite the clause ids you relied on.
 If the clauses do not contain the answer, set answerable to false and say plainly what the document does not cover.`;
 }
 
+/** The question sits outside the fence; only document text is marked as data. */
 export function askUserPrompt(
   question: string,
   clauses: ReadonlyArray<{ id: string; text: string }>,
 ): string {
-  const body = clauses.map((c) => `[${c.id}]\n${c.text}`).join("\n\n");
-  return `Question: ${question}\n\n${fenceDocument(body)}`;
+  return `Question: ${question}\n\n${fenceDocument(formatClausesWithIds(clauses))}`;
 }
 
+/** Keeps questions short and specific so they fit a single paid consultation. */
 export function checklistSystemPrompt(perspective: Perspective): string {
   return `${SCOPE_RULES}
 
-Write questions that ${describePerspective(perspective)} should ask a qualified lawyer about this document.
+Write questions that ${PERSPECTIVE_LABELS[perspective]} should ask a qualified lawyer about this document.
 Each question must be specific to the concerns listed, answerable in a short consultation, and free of jargon.
 Return between three and seven questions.`;
+}
+
+/** Concerns are model-written summaries, not raw document text, so they are not fenced. */
+export function checklistUserPrompt(concerns: readonly string[]): string {
+  return `Concerns found in the document:\n${concerns.map((concern) => `- ${concern}`).join("\n")}`;
+}
+
+/**
+ * Transcription must be verbatim: the chunker relies on the original clause
+ * numbering to find clause boundaries, so any reformatting degrades analysis.
+ */
+export const PDF_TRANSCRIPTION_SYSTEM_PROMPT = `You are a high-accuracy document transcription engine.
+Your sole job is to read the attached document and return its complete text exactly as written.
+
+CRITICAL INSTRUCTIONS:
+1. Transcribe the text VERBATIM.
+2. Preserve all clause numbering, headers, bullet points, and document structure.
+3. DO NOT summarize, paraphrase, reformat, or omit any part of the text.
+4. DO NOT add any commentary or preamble.
+5. If the document is a scanned image with no readable text, return an empty string.`;
+
+function formatClausesWithIds(clauses: ReadonlyArray<{ id: string; text: string }>): string {
+  return clauses.map((clause) => `[${clause.id}]\n${clause.text}`).join("\n\n");
 }

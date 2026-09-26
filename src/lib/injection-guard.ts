@@ -22,12 +22,17 @@ const INJECTION_PATTERNS: readonly RegExp[] = [
   /new\s+instructions?\s*:/gi,
 ];
 
+/** Result of `sanitiseDocumentText`. */
 export interface SanitisedText {
   text: string;
   /** Number of neutralised spans — surfaced to the user as a transparency signal. */
   flagged: number;
 }
 
+/**
+ * Annotates known injection phrasings and collapses fence-like sequences. Run on
+ * every piece of document-derived or user-typed text before it reaches a prompt.
+ */
 export function sanitiseDocumentText(input: string): SanitisedText {
   let flagged = 0;
   let text = input;

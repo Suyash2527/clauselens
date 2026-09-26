@@ -1,24 +1,30 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import type { DocumentAnalysis, Perspective } from "@/lib/types";
+import { useEffect, useRef, useState } from "react";
+import { DocumentInput, type UploadedFileInfo } from "@/components/DocumentInput";
 import { Disclaimer } from "@/components/Disclaimer";
-import { RoleSelector } from "@/components/RoleSelector";
 import { ResultsView } from "@/components/ResultsView";
-import { DocumentInput } from "@/components/DocumentInput";
+import { RoleSelector } from "@/components/RoleSelector";
+import { GENERIC_ERROR_MESSAGE, NETWORK_ERROR_MESSAGE, readErrorMessage } from "@/lib/errors";
+import type { DocumentAnalysis, Perspective } from "@/lib/types";
 
+/** Mirrors the server-side minimum so the button is disabled before a round trip fails. */
 const MIN_CHARS = 50;
 
+/**
+ * Three-step flow: pick a role, add a document, read the results. The role is
+ * chosen first because every score on the results page depends on it.
+ */
 export default function HomePage() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [text, setText] = useState("");
   const [perspective, setPerspective] = useState<Perspective>("tenant");
   const [analysis, setAnalysis] = useState<DocumentAnalysis | null>(null);
-  const [pending, setPending] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [extracting, setExtracting] = useState(false);
-  const [extractedFile, setExtractedFile] = useState<{name: string, size: number} | null>(null);
-  const [extractedCount, setExtractedCount] = useState<number | null>(null);
+  const [extractedFile, setExtractedFile] = useState<UploadedFileInfo | null>(null);
+  const [extractedCharCount, setExtractedCharCount] = useState<number | null>(null);
   const [pendingUpload, setPendingUpload] = useState<File | null>(null);
 
   const step1Ref = useRef<HTMLHeadingElement>(null);
@@ -33,15 +39,11 @@ export default function HomePage() {
   function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
-
-    if (text.trim().length > 0) {
-      setPendingUpload(file);
-      event.target.value = "";
-      return;
-    }
-    
-    performUpload(file);
+    // Reset so choosing the same file again still fires a change event.
     event.target.value = "";
+    // Never overwrite typed text silently; ask first.
+    if (text.trim().length > 0) setPendingUpload(file);
+    else void uploadAndExtract(file);
   }
 
   function cancelUpload() {
@@ -49,37 +51,31 @@ export default function HomePage() {
     document.getElementById("document-upload-label")?.focus();
   }
 
-  async function performUpload(file: File) {
+  async function uploadAndExtract(file: File) {
     setPendingUpload(null);
-
     setExtracting(true);
     setError(null);
     setAnalysis(null);
     setExtractedFile({ name: file.name, size: file.size });
-    setExtractedCount(null);
+    setExtractedCharCount(null);
     setText("");
-    
+
     const formData = new FormData();
     formData.append("file", file);
 
     try {
-      const response = await fetch("/api/extract", {
-        method: "POST",
-        body: formData,
-      });
-      
+      const response = await fetch("/api/extract", { method: "POST", body: formData });
       const body: unknown = await response.json();
       if (!response.ok) {
-        setError(readError(body));
+        setError(readErrorMessage(body, GENERIC_ERROR_MESSAGE));
         setExtractedFile(null);
         return;
       }
-      
       const extractedText = (body as { text: string }).text;
       setText(extractedText);
-      setExtractedCount(extractedText.length);
+      setExtractedCharCount(extractedText.length);
     } catch {
-      setError("Could not reach the server. Check your connection and try again.");
+      setError(NETWORK_ERROR_MESSAGE);
       setExtractedFile(null);
     } finally {
       setExtracting(false);
@@ -87,7 +83,7 @@ export default function HomePage() {
   }
 
   async function analyze() {
-    setPending(true);
+    setAnalyzing(true);
     setError(null);
     setAnalysis(null);
     try {
@@ -98,16 +94,22 @@ export default function HomePage() {
       });
       const body: unknown = await response.json();
       if (!response.ok) {
-        setError(readError(body));
+        setError(readErrorMessage(body, GENERIC_ERROR_MESSAGE));
         return;
       }
       setAnalysis(body as DocumentAnalysis);
       setStep(3);
     } catch {
-      setError("Could not reach the server. Check your connection and try again.");
+      setError(NETWORK_ERROR_MESSAGE);
     } finally {
-      setPending(false);
+      setAnalyzing(false);
     }
+  }
+
+  function startOver() {
+    setStep(1);
+    setAnalysis(null);
+    setText("");
   }
 
   return (
@@ -127,11 +129,11 @@ export default function HomePage() {
       {step === 1 && (
         <section aria-labelledby="step1-heading" className="step-header animate-in" style={{ marginTop: "2rem" }}>
           <span className="step-indicator">Step 1 of 3</span>
-          <h2 id="step1-heading" tabIndex={-1} ref={step1Ref} style={{ outline: 'none' }}>
+          <h2 id="step1-heading" tabIndex={-1} ref={step1Ref} style={{ outline: "none" }}>
             Who are you in this agreement?
           </h2>
 
-          <RoleSelector value={perspective} onChange={setPerspective} disabled={false} />
+          <RoleSelector value={perspective} onChange={setPerspective} disabled={analyzing} />
 
           <div className="button-group">
             <button className="button" type="button" onClick={() => setStep(2)} suppressHydrationWarning>
@@ -144,7 +146,7 @@ export default function HomePage() {
       {step === 2 && (
         <section aria-labelledby="step2-heading" className="step-header animate-in" style={{ marginTop: "2rem" }}>
           <span className="step-indicator">Step 2 of 3</span>
-          <h2 id="step2-heading" tabIndex={-1} ref={step2Ref} style={{ outline: 'none' }}>
+          <h2 id="step2-heading" tabIndex={-1} ref={step2Ref} style={{ outline: "none" }}>
             Add your document
           </h2>
 
@@ -153,27 +155,27 @@ export default function HomePage() {
             setText={setText}
             pendingUpload={pendingUpload}
             extractedFile={extractedFile}
-            extractedCount={extractedCount}
+            extractedCharCount={extractedCharCount}
             extracting={extracting}
-            pending={pending}
+            analyzing={analyzing}
             error={error}
             onFileChange={handleFileChange}
             onCancelUpload={cancelUpload}
-            onConfirmUpload={performUpload}
+            onConfirmUpload={uploadAndExtract}
           />
 
           <div className="button-group">
-            <button className="button button--secondary" type="button" onClick={() => setStep(1)} disabled={pending || extracting} suppressHydrationWarning>
+            <button className="button button--secondary" type="button" onClick={() => setStep(1)} disabled={analyzing || extracting} suppressHydrationWarning>
               Back to role selection
             </button>
             <button
               className="button"
               type="button"
               onClick={analyze}
-              disabled={pending || extracting || text.trim().length < MIN_CHARS}
+              disabled={analyzing || extracting || text.trim().length < MIN_CHARS}
               suppressHydrationWarning
             >
-              {pending ? "Reading the document…" : "Explain this document"}
+              {analyzing ? "Reading the document…" : "Explain this document"}
             </button>
           </div>
         </section>
@@ -183,7 +185,7 @@ export default function HomePage() {
         <div className="animate-in">
           <ResultsView analysis={analysis} />
           <div className="button-group" style={{ marginTop: "2rem" }}>
-            <button className="button button--secondary" type="button" onClick={() => { setStep(1); setAnalysis(null); setText(""); }} suppressHydrationWarning>
+            <button className="button button--secondary" type="button" onClick={startOver} suppressHydrationWarning>
               Start over with a new document
             </button>
           </div>
@@ -191,12 +193,4 @@ export default function HomePage() {
       )}
     </main>
   );
-}
-
-function readError(body: unknown): string {
-  if (typeof body === "object" && body !== null && "error" in body) {
-    const { error } = body as { error: unknown };
-    if (typeof error === "string") return error;
-  }
-  return "Something went wrong. Please try again.";
 }

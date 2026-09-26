@@ -1,21 +1,27 @@
 "use client";
 
 import { useState } from "react";
+import { NETWORK_ERROR_MESSAGE, readErrorMessage } from "@/lib/errors";
 import type { AnalyzedClause, AskAnswer, Perspective } from "@/lib/types";
 
-interface Props {
+interface QuestionPanelProps {
   clauses: AnalyzedClause[];
   perspective: Perspective;
 }
 
-export function QuestionPanel({ clauses, perspective }: Props) {
+/**
+ * Follow-up questions grounded in the analysed clauses. Only id, index and
+ * text are sent back, so the model answers from the document, not from its
+ * own earlier summaries.
+ */
+export function QuestionPanel({ clauses, perspective }: QuestionPanelProps) {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<AskAnswer | null>(null);
-  const [pending, setPending] = useState(false);
+  const [asking, setAsking] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function ask() {
-    setPending(true);
+    setAsking(true);
     setError(null);
     try {
       const response = await fetch("/api/ask", {
@@ -29,14 +35,14 @@ export function QuestionPanel({ clauses, perspective }: Props) {
       });
       const body: unknown = await response.json();
       if (!response.ok) {
-        setError(readError(body));
+        setError(readErrorMessage(body, "Something went wrong."));
         return;
       }
       setAnswer(body as AskAnswer);
     } catch {
-      setError("Could not reach the server. Check your connection and try again.");
+      setError(NETWORK_ERROR_MESSAGE);
     } finally {
-      setPending(false);
+      setAsking(false);
     }
   }
 
@@ -57,9 +63,9 @@ export function QuestionPanel({ clauses, perspective }: Props) {
         className="button"
         type="button"
         onClick={ask}
-        disabled={pending || question.trim().length < 3}
+        disabled={asking || question.trim().length < 3}
       >
-        {pending ? "Checking the document…" : "Ask"}
+        {asking ? "Checking the document…" : "Ask"}
       </button>
 
       <div role="status" aria-live="polite" style={{ marginTop: "1rem" }}>
@@ -78,12 +84,4 @@ export function QuestionPanel({ clauses, perspective }: Props) {
       </div>
     </section>
   );
-}
-
-function readError(body: unknown): string {
-  if (typeof body === "object" && body !== null && "error" in body) {
-    const { error } = body as { error: unknown };
-    if (typeof error === "string") return error;
-  }
-  return "Something went wrong.";
 }

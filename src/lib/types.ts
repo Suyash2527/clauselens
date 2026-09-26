@@ -14,9 +14,14 @@ export const PERSPECTIVES = [
   "client",
 ] as const;
 
-export const perspectiveSchema = z.enum(PERSPECTIVES);
+const perspectiveSchema = z.enum(PERSPECTIVES);
+/** One of `PERSPECTIVES`. */
 export type Perspective = z.infer<typeof perspectiveSchema>;
 
+/**
+ * Fixed taxonomy the model must classify into. Kept closed so risk weights can
+ * be assigned per category and the model cannot invent new ones.
+ */
 export const CLAUSE_CATEGORIES = [
   "payment",
   "termination",
@@ -32,12 +37,12 @@ export const CLAUSE_CATEGORIES = [
   "other",
 ] as const;
 
-export const clauseCategorySchema = z.enum(CLAUSE_CATEGORIES);
+const clauseCategorySchema = z.enum(CLAUSE_CATEGORIES);
+/** One of `CLAUSE_CATEGORIES`. */
 export type ClauseCategory = z.infer<typeof clauseCategorySchema>;
 
-export const SEVERITIES = ["low", "medium", "high"] as const;
-export const severitySchema = z.enum(SEVERITIES);
-export type Severity = z.infer<typeof severitySchema>;
+/** Derived locally by `severityFor`, never taken from the model. */
+export type Severity = "low" | "medium" | "high";
 
 /** A raw span of the source document, before any model call. */
 export interface ClauseChunk {
@@ -61,6 +66,7 @@ export const clauseAnalysisSchema = z.object({
   concerns: z.array(z.string().max(300)).max(5),
   questionForLawyer: z.string().max(300).nullable(),
 });
+/** Validated model output for one clause. */
 export type ClauseAnalysis = z.infer<typeof clauseAnalysisSchema>;
 
 /** A clause chunk joined with its analysis and locally computed severity. */
@@ -69,20 +75,26 @@ export interface AnalyzedClause extends ClauseChunk {
   severity: Severity;
 }
 
+/** Response body of `POST /api/analyze`; also the cached unit of work. */
 export interface DocumentAnalysis {
   perspective: Perspective;
   clauses: AnalyzedClause[];
   redFlags: AnalyzedClause[];
   lawyerChecklist: string[];
+  /** True when the document exceeded the clause limit and only the start was analysed. */
   truncated: boolean;
 }
 
+/** Request body of `POST /api/analyze`. The size ceiling bounds model cost per request. */
 export const analyzeRequestSchema = z.object({
   text: z.string().min(50, "Document is too short to analyse.").max(120_000),
   perspective: perspectiveSchema,
 });
-export type AnalyzeRequest = z.infer<typeof analyzeRequestSchema>;
 
+/**
+ * Request body of `POST /api/ask`. Clauses travel with the question so the
+ * server stays stateless; the caps stop a client using it as a free proxy.
+ */
 export const askRequestSchema = z.object({
   question: z.string().min(3).max(500),
   perspective: perspectiveSchema,
@@ -91,11 +103,12 @@ export const askRequestSchema = z.object({
     .min(1)
     .max(60),
 });
-export type AskRequest = z.infer<typeof askRequestSchema>;
 
+/** Validated model reply to a question, returned by `POST /api/ask`. */
 export const askAnswerSchema = z.object({
   answer: z.string(),
   citedClauseIds: z.array(z.string()),
   answerable: z.boolean(),
 });
+/** See `askAnswerSchema`. */
 export type AskAnswer = z.infer<typeof askAnswerSchema>;

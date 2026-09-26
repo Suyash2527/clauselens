@@ -1,10 +1,10 @@
+import { cacheKey, TtlCache } from "../cache";
 import { chunkIntoClauses } from "../chunking";
-import { sanitiseDocumentText } from "../injection-guard";
-import { classifyClauses } from "../gemini/classify-clauses";
-import { buildLawyerChecklist } from "../gemini/answer-question";
-import { severityFor } from "../risk-scoring";
-import { TtlCache, cacheKey } from "../cache";
 import { badRequest } from "../errors";
+import { buildLawyerChecklist } from "../gemini/answer-question";
+import { classifyClauses } from "../gemini/classify-clauses";
+import { sanitiseDocumentText } from "../injection-guard";
+import { severityFor } from "../risk-scoring";
 import type {
   AnalyzedClause,
   ClauseAnalysis,
@@ -13,7 +13,11 @@ import type {
   Perspective,
 } from "../types";
 
+/** Bounds cost and latency; the UI tells the user when a document was cut short. */
 const MAX_CLAUSES = 60;
+/** Keeps the checklist prompt focused on the worst clauses rather than every concern. */
+const MAX_CHECKLIST_CONCERNS = 12;
+
 const analysisCache = new TtlCache<DocumentAnalysis>();
 
 /**
@@ -53,12 +57,12 @@ export async function analyzeDocument(
   const chunks = truncated ? allChunks.slice(0, MAX_CLAUSES) : allChunks;
 
   const analyses = await deps.classify(chunks, perspective);
-  const clauses = joinAnalyses(chunks, analyses, perspective);
+  const clauses = attachAnalyses(chunks, analyses, perspective);
   const redFlags = clauses
     .filter((clause) => clause.severity === "high")
     .sort((a, b) => b.analysis.burdenScore - a.analysis.burdenScore);
 
-  const concerns = redFlags.flatMap((clause) => clause.analysis.concerns).slice(0, 12);
+  const concerns = redFlags.flatMap((clause) => clause.analysis.concerns).slice(0, MAX_CHECKLIST_CONCERNS);
   const lawyerChecklist = await deps.checklist(concerns, perspective);
 
   const result: DocumentAnalysis = { perspective, clauses, redFlags, lawyerChecklist, truncated };
@@ -66,16 +70,17 @@ export async function analyzeDocument(
   return result;
 }
 
-function joinAnalyses(
+/** Pairs each chunk with its analysis and severity; chunks the model skipped are dropped. */
+function attachAnalyses(
   chunks: readonly ClauseChunk[],
   analyses: ReadonlyMap<string, ClauseAnalysis>,
   perspective: Perspective,
 ): AnalyzedClause[] {
-  const joined: AnalyzedClause[] = [];
+  const analyzed: AnalyzedClause[] = [];
   for (const chunk of chunks) {
     const analysis = analyses.get(chunk.id);
     if (!analysis) continue;
-    joined.push({ ...chunk, analysis, severity: severityFor(analysis, perspective) });
+    analyzed.push({ ...chunk, analysis, severity: severityFor(analysis, perspective) });
   }
-  return joined;
+  return analyzed;
 }

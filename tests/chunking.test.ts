@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { chunkIntoClauses } from "@/lib/chunking";
 
@@ -30,7 +32,7 @@ describe("chunkIntoClauses", () => {
     expect(chunks.map((c) => c.index)).toEqual([1, 2, 3]);
   });
 
-  it("records offsets that point back into the normalised source", () => {
+  it("records a non-empty offset span for every chunk", () => {
     const chunks = chunkIntoClauses(LEASE);
     for (const chunk of chunks) {
       expect(chunk.endOffset).toBeGreaterThan(chunk.startOffset);
@@ -41,7 +43,7 @@ describe("chunkIntoClauses", () => {
     expect(chunkIntoClauses("1. OK\n\n2. No.")).toHaveLength(0);
   });
 
-  it("returns an empty array for empty input", () => {
+  it("returns an empty array for whitespace-only input", () => {
     expect(chunkIntoClauses("   ")).toEqual([]);
   });
 
@@ -52,7 +54,48 @@ describe("chunkIntoClauses", () => {
     for (const chunk of chunks) expect(chunk.text.length).toBeLessThanOrEqual(4_100);
   });
 
-  it("handles Windows line endings", () => {
+  it.each([
+    ["employment-agreement.txt", "1. POSITION AND DUTIES", "7. GOVERNING LAW"],
+    ["freelance-agreement.txt", "1. SERVICES PROVIDED", "7. LIABILITY"],
+  ])("splits %s, whose clauses have no blank lines between them", (file, first, last) => {
+    const raw = readFileSync(fileURLToPath(new URL(`./fixtures/${file}`, import.meta.url)), "utf8");
+    const chunks = chunkIntoClauses(raw);
+    expect(chunks).toHaveLength(7);
+    expect(chunks[0]?.text.startsWith(first)).toBe(true);
+    expect(chunks[6]?.text.startsWith(last)).toBe(true);
+  });
+
+  it("splits consecutive 'Section N' lines", () => {
+    const text = "Section 1. RENT: Rent is due monthly on the fifth day.\nSection 2. TERM: The term runs for eleven full months.";
+    expect(chunkIntoClauses(text)).toHaveLength(2);
+  });
+
+  it("keeps sub-numbered lines with their parent clause", () => {
+    const text = [
+      "1. PAYMENT: The client shall pay the fees set out below.",
+      "1.1 Fees are payable within thirty days of each invoice.",
+      "(a) Late fees accrue at two percent per month on unpaid sums.",
+      "2. TERM: This agreement runs for twelve months from signing.",
+    ].join("\n");
+    const chunks = chunkIntoClauses(text);
+    expect(chunks).toHaveLength(2);
+    expect(chunks[0]?.text).toContain("Late fees accrue");
+  });
+
+  it("does not split on a wrapped line that begins with an out-of-sequence number", () => {
+    const text = "1. PAYMENT: Invoices are payable on receipt and in any case within\n30. days of the date shown on the invoice itself.";
+    expect(chunkIntoClauses(text)).toHaveLength(1);
+  });
+
+  it("keeps chunk offsets pointing at the chunk's own text", () => {
+    const raw = readFileSync(fileURLToPath(new URL("./fixtures/employment-agreement.txt", import.meta.url)), "utf8");
+    const normalised = raw.replace(/\r\n?/g, "\n");
+    for (const chunk of chunkIntoClauses(raw)) {
+      expect(normalised.slice(chunk.startOffset, chunk.endOffset).trim()).toBe(chunk.text);
+    }
+  });
+
+  it("splits CRLF-delimited text into clauses like LF text", () => {
     const chunks = chunkIntoClauses("1. RENT\r\nRent is due monthly on the fifth day.\r\n\r\n2. TERM\r\nThe term runs for eleven full months.");
     expect(chunks).toHaveLength(2);
   });

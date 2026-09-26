@@ -1,5 +1,10 @@
+/** The upload formats the extract route accepts. */
 export type MimeType = "application/pdf" | "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
+/**
+ * Identifies the file by its magic bytes, not its name or declared type, which
+ * the client controls. DOCX shares the ZIP signature; mammoth rejects other ZIPs.
+ */
 export function detectMimeType(buffer: Buffer): MimeType | null {
   if (buffer.length < 4) return null;
 

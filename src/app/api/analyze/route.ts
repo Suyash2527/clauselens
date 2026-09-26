@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
-import { analyzeRequestSchema } from "@/lib/types";
 import { analyzeDocument } from "@/lib/analysis/analyze-document";
-import { clientKey, enforceRateLimit } from "@/lib/rate-limit";
 import { badRequest, toSafeError } from "@/lib/errors";
+import { clientIpFromHeaders, enforceRateLimit } from "@/lib/rate-limit";
+import { analyzeRequestSchema } from "@/lib/types";
 
+/** Node runtime: the cache hashes with `node:crypto`. */
 export const runtime = "nodejs";
 
+/** Rejects oversized bodies before they are buffered and parsed. */
 const MAX_BODY_BYTES = 300_000;
 
 /**
@@ -14,7 +16,7 @@ const MAX_BODY_BYTES = 300_000;
  */
 export async function POST(request: Request): Promise<NextResponse> {
   try {
-    enforceRateLimit(clientKey(request.headers));
+    enforceRateLimit(clientIpFromHeaders(request.headers));
 
     const contentLength = Number(request.headers.get("content-length") ?? 0);
     if (contentLength > MAX_BODY_BYTES) {

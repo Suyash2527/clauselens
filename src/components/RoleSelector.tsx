@@ -2,22 +2,23 @@
 
 import { PERSPECTIVES, type Perspective } from "@/lib/types";
 
-const LABELS: Record<Perspective, { title: string; desc: string }> = {
-  tenant: { title: "Tenant", desc: "I am renting the property" },
-  landlord: { title: "Landlord", desc: "I am renting out my property" },
-  employee: { title: "Employee", desc: "I am being hired" },
-  employer: { title: "Employer", desc: "I am hiring an employee" },
-  freelancer: { title: "Freelancer", desc: "I am working as a freelancer" },
-  client: { title: "Client", desc: "I am hiring a freelancer" },
+const ROLE_LABELS: Record<Perspective, { title: string; description: string }> = {
+  tenant: { title: "Tenant", description: "I am renting the property" },
+  landlord: { title: "Landlord", description: "I am renting out my property" },
+  employee: { title: "Employee", description: "I am being hired" },
+  employer: { title: "Employer", description: "I am hiring an employee" },
+  freelancer: { title: "Freelancer", description: "I am working as a freelancer" },
+  client: { title: "Client", description: "I am hiring a freelancer" },
 };
 
-interface Props {
+interface RoleSelectorProps {
   value: Perspective;
   onChange: (value: Perspective) => void;
   disabled: boolean;
 }
 
-export function RoleSelector({ value, onChange, disabled }: Props) {
+/** Radio group over `PERSPECTIVES`; every later score is relative to this choice. */
+export function RoleSelector({ value, onChange, disabled }: RoleSelectorProps) {
   return (
     <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
       <legend className="label" style={{ padding: 0, marginBottom: "0.5rem" }}>
@@ -41,8 +42,8 @@ export function RoleSelector({ value, onChange, disabled }: Props) {
                 onChange={(event) => onChange(event.target.value as Perspective)}
               />
               <div className="role-card-content">
-                <div className="role-card-title">{LABELS[perspective].title}</div>
-                <p className="role-card-desc">{LABELS[perspective].desc}</p>
+                <div className="role-card-title">{ROLE_LABELS[perspective].title}</div>
+                <p className="role-card-desc">{ROLE_LABELS[perspective].description}</p>
               </div>
             </label>
           );

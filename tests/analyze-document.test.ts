@@ -36,7 +36,7 @@ The contractor shall deliver the design work described in the statement of work.
 The contractor shall indemnify the client against all losses arising from the work.`;
 
 describe("analyzeDocument", () => {
-  it("returns one analysed clause per chunk", async () => {
+  it("returns one analysed clause per numbered clause, in document order", async () => {
     const result = await analyzeDocument(CONTRACT, "freelancer", stubDeps());
     expect(result.clauses).toHaveLength(2);
     expect(result.clauses[0]?.analysis.plainSummary).toContain("clause 1");
@@ -48,12 +48,19 @@ describe("analyzeDocument", () => {
   });
 
   it("produces fewer red flags for the protected client on the same text", async () => {
+    // The model scores burden per perspective: heavy for the indemnifier, light for the indemnified.
+    const base = stubDeps().classify;
+    const classify: AnalyzeDeps["classify"] = async (chunks, perspective) => {
+      const map = await base(chunks, perspective);
+      if (perspective === "client") for (const a of map.values()) a.burdenScore = 3;
+      return map;
+    };
     const asFreelancer = await analyzeDocument(CONTRACT, "freelancer", stubDeps());
-    const asClient = await analyzeDocument(CONTRACT, "client", stubDeps());
+    const asClient = await analyzeDocument(CONTRACT, "client", stubDeps({ classify }));
     expect(asClient.redFlags.length).toBeLessThan(asFreelancer.redFlags.length);
   });
 
-  it("rejects input with no recognisable clauses", async () => {
+  it("throws an AppError when the text has no recognisable clauses", async () => {
     await expect(analyzeDocument("....", "tenant", stubDeps())).rejects.toBeInstanceOf(AppError);
   });
 
@@ -63,7 +70,7 @@ describe("analyzeDocument", () => {
     expect(result.clauses).toEqual([]);
   });
 
-  it("survives a checklist failure without failing the analysis", async () => {
+  it("completes the analysis when the checklist step returns no questions", async () => {
     const deps = stubDeps({ checklist: vi.fn(async () => []) });
     const result = await analyzeDocument(CONTRACT + " unique failure test", "freelancer", deps);
     expect(result.lawyerChecklist).toEqual([]);

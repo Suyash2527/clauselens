@@ -2,21 +2,28 @@
 
 import { useEffect, useRef } from "react";
 
-interface Props {
+/** Name and size of the uploaded file, shown next to the character count. */
+export interface UploadedFileInfo {
+  name: string;
+  size: number;
+}
+
+interface DocumentInputProps {
   text: string;
   setText: (text: string) => void;
   pendingUpload: File | null;
-  extractedFile: { name: string; size: number } | null;
-  extractedCount: number | null;
+  extractedFile: UploadedFileInfo | null;
+  extractedCharCount: number | null;
   extracting: boolean;
-  pending: boolean;
+  analyzing: boolean;
   error: string | null;
   onFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onCancelUpload: () => void;
   onConfirmUpload: (file: File) => void;
 }
 
-const SAMPLE_TEXT = `RENTAL AGREEMENT
+/** A short landlord-favoured lease touching the common risk categories: deposit, penalties, lock-in, indemnity. */
+const SAMPLE_RENTAL_AGREEMENT = `RENTAL AGREEMENT
 
 This Rental Agreement is made on this 1st day of January 2026, between Mr. Sharma (hereinafter referred to as "Landlord") and Mr. Patel (hereinafter referred to as "Tenant").
 
@@ -45,19 +52,23 @@ Section 11. INDEMNITY: The Tenant agrees to indemnify and hold the Landlord harm
 Section 12. INSPECTION: The Landlord shall have the right to enter and inspect the premises at reasonable hours with 24 hours prior notice to the Tenant.
 `;
 
+/**
+ * Step 2 input: paste, upload, or load the sample. Upload state lives in the
+ * page so the extracted text survives navigating back to the role step.
+ */
 export function DocumentInput({
   text,
   setText,
   pendingUpload,
   extractedFile,
-  extractedCount,
+  extractedCharCount,
   extracting,
-  pending,
+  analyzing,
   error,
   onFileChange,
   onCancelUpload,
   onConfirmUpload,
-}: Props) {
+}: DocumentInputProps) {
   const confirmRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -72,18 +83,18 @@ export function DocumentInput({
         <label className="label" htmlFor="document">
           Paste the agreement text
         </label>
-        <label 
+        <label
           id="document-upload-label"
-          htmlFor="document-upload" 
-          className="button button--secondary" 
+          htmlFor="document-upload"
+          className="button button--secondary"
           tabIndex={0}
-          onKeyDown={(e) => { 
-            if (e.key === "Enter" || e.key === " ") { 
-              e.preventDefault(); 
-              document.getElementById("document-upload")?.click(); 
-            } 
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              document.getElementById("document-upload")?.click();
+            }
           }}
-          style={{ fontSize: "0.875rem", padding: "0.25rem 0.75rem", cursor: "pointer", opacity: (pending || extracting) ? 0.5 : 1 }}>
+          style={{ fontSize: "0.875rem", padding: "0.25rem 0.75rem", cursor: "pointer", opacity: (analyzing || extracting) ? 0.5 : 1 }}>
           Upload PDF or DOCX
         </label>
         <input
@@ -92,20 +103,20 @@ export function DocumentInput({
           accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
           style={{ display: "none" }}
           onChange={onFileChange}
-          disabled={pending || extracting}
+          disabled={analyzing || extracting}
         />
       </div>
-      
+
       <textarea
         id="document"
         value={text}
-        disabled={pending || extracting}
+        disabled={analyzing || extracting}
         aria-describedby="document-help"
         onChange={(event) => setText(event.target.value)}
         placeholder="Paste the full text of the agreement here…"
         style={{ marginTop: "0.5rem" }}
       />
-      
+
       <div id="document-help" className="label" style={{ display: "flex", justifyContent: "space-between" }}>
         <span>{text.length.toLocaleString()} characters · nothing is stored after the page is closed</span>
         {extractedFile && (
@@ -119,8 +130,8 @@ export function DocumentInput({
         <button
           className="button button--secondary"
           type="button"
-          onClick={() => setText(SAMPLE_TEXT)}
-          disabled={pending || extracting}
+          onClick={() => setText(SAMPLE_RENTAL_AGREEMENT)}
+          disabled={analyzing || extracting}
           suppressHydrationWarning
         >
           Try a sample document
@@ -138,9 +149,9 @@ export function DocumentInput({
           </div>
         )}
         {extracting && <p>Extracting text from document...</p>}
-        {pending && <p>Splitting the document into clauses and reviewing each one.</p>}
-        {extractedCount !== null && !pending && !extracting && !error && (
-          <p>Extracted {extractedCount.toLocaleString()} characters from {extractedFile?.name}.</p>
+        {analyzing && <p>Splitting the document into clauses and reviewing each one.</p>}
+        {extractedCharCount !== null && !analyzing && !extracting && !error && (
+          <p>Extracted {extractedCharCount.toLocaleString()} characters from {extractedFile?.name}.</p>
         )}
         {error && <p style={{ color: "var(--oxblood)" }}>{error}</p>}
       </div>

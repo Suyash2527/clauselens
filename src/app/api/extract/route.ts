@@ -1,46 +1,47 @@
 import { NextResponse } from "next/server";
-import { clientKey, enforceRateLimit } from "@/lib/rate-limit";
 import { badRequest, toSafeError } from "@/lib/errors";
+import { extractDocxText } from "@/lib/extract/docx";
 import { detectMimeType } from "@/lib/extract/mime";
 import { extractPdfText } from "@/lib/gemini/extract-text";
-import { extractDocxText } from "@/lib/extract/docx";
 import { sanitiseDocumentText } from "@/lib/injection-guard";
+import { clientIpFromHeaders, enforceRateLimit } from "@/lib/rate-limit";
 
+/** Node runtime: extraction needs `Buffer` and mammoth. */
 export const runtime = "nodejs";
 
 const MAX_BODY_BYTES = 5_000_000; // 5 MB
+const FILE_TOO_LARGE_MESSAGE = "File is too large. Please upload a file under 5 MB.";
 
+/** Below this, a "PDF" is almost certainly a scan with no text layer. */
+const MIN_PDF_TEXT_CHARS = 200;
+
+/**
+ * Turns an uploaded PDF or DOCX into plain text for the textarea. The text is
+ * sanitised here as well as at analysis time, because the user sees and can
+ * edit it before submitting.
+ */
 export async function POST(request: Request): Promise<NextResponse> {
   try {
-    enforceRateLimit(clientKey(request.headers));
+    enforceRateLimit(clientIpFromHeaders(request.headers));
 
+    // The header can be absent or wrong, so the buffer size is checked again below.
     const contentLength = Number(request.headers.get("content-length") ?? 0);
-    if (contentLength > MAX_BODY_BYTES) {
-      throw badRequest("File is too large. Please upload a file under 5 MB.");
-    }
+    if (contentLength > MAX_BODY_BYTES) throw badRequest(FILE_TOO_LARGE_MESSAGE);
 
     const formData = await request.formData();
     const file = formData.get("file");
-    
-    if (!file || !(file instanceof File)) {
-      throw badRequest("No file provided.");
-    }
+    if (!(file instanceof File)) throw badRequest("No file provided.");
 
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-
-    if (buffer.length > MAX_BODY_BYTES) {
-      throw badRequest("File is too large. Please upload a file under 5 MB.");
-    }
+    const buffer = Buffer.from(await file.arrayBuffer());
+    if (buffer.length > MAX_BODY_BYTES) throw badRequest(FILE_TOO_LARGE_MESSAGE);
 
     const mime = detectMimeType(buffer);
-    let extractedText = "";
-
+    let extractedText: string;
     if (mime === "application/pdf") {
       extractedText = await extractPdfText(buffer);
-      if (extractedText.length < 200) {
+      if (extractedText.length < MIN_PDF_TEXT_CHARS) {
         throw badRequest(
-          "The PDF appears to be scanned or image-based, or it contains too little text. Please paste the text directly."
+          "The PDF appears to be scanned or image-based, or it contains too little text. Please paste the text directly.",
         );
       }
     } else if (mime === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
@@ -50,7 +51,6 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     const { text: sanitisedText } = sanitiseDocumentText(extractedText);
-
     return NextResponse.json({ text: sanitisedText });
   } catch (error) {
     const { status, body } = toSafeError(error);

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { clientKey, enforceRateLimit, resetRateLimits } from "@/lib/rate-limit";
+import { clientIpFromHeaders, enforceRateLimit, resetRateLimits } from "@/lib/rate-limit";
 import { AppError } from "@/lib/errors";
 
 describe("enforceRateLimit", () => {
@@ -38,13 +38,13 @@ describe("enforceRateLimit", () => {
   });
 });
 
-describe("clientKey", () => {
+describe("clientIpFromHeaders", () => {
   it("uses the first address in x-forwarded-for", () => {
     const headers = new Headers({ "x-forwarded-for": "203.0.113.5, 70.41.3.18" });
-    expect(clientKey(headers)).toBe("203.0.113.5");
+    expect(clientIpFromHeaders(headers)).toBe("203.0.113.5");
   });
 
-  it("falls back when the header is absent", () => {
-    expect(clientKey(new Headers())).toBe("unknown");
+  it("returns \"unknown\" when x-forwarded-for is absent", () => {
+    expect(clientIpFromHeaders(new Headers())).toBe("unknown");
   });
 });
