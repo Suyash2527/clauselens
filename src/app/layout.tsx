@@ -14,16 +14,16 @@ export const metadata: Metadata = {
  */
 export const dynamic = "force-dynamic";
 
+import { Fraunces, Newsreader, JetBrains_Mono } from "next/font/google";
+
+const fraunces = Fraunces({ subsets: ["latin"], weight: ["500", "600"], variable: "--font-display", display: "swap" });
+const newsreader = Newsreader({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-body", display: "swap" });
+const mono = JetBrains_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-mono", display: "swap" });
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${fraunces.variable} ${newsreader.variable} ${mono.variable}`}>
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Newsreader:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap"
-          rel="stylesheet"
-        />
       </head>
       <body>
         <a className="skip-link" href="#main">
